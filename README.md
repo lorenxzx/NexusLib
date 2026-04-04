@@ -6,7 +6,7 @@
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║    ╚██████╔╝██║
     ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚═╝
 
-    NexusUI v2.0.0  —  Moddddern Roblox UI Library
+    NexusUI v2.0.0  —  Modern Roblox UI Library
 
     FIX DEFINITIVO DOS CANTOS:
       UIStroke + ClipsDescendants no MESMO frame sempre vaza.
@@ -514,24 +514,20 @@ function NexusUI:CreateWindow(config)
 
         -- Inner: fundo com gradiente + clip
         local iconInner = Instance.new("Frame")
-        iconInner.BackgroundColor3 = T.AccentDim
+        iconInner.BackgroundColor3 = T.Card
         iconInner.Size             = UDim2.new(1,0,1,0)
         iconInner.BorderSizePixel  = 0
         iconInner.ClipsDescendants = true
         iconInner.Parent           = iconOuter
         do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,10); c.Parent=iconInner end
 
-        -- Gradiente diagonal (claro → escuro)
+        -- Gradiente sutil (tom do tema, claro → escuro)
         do
             local g=Instance.new("UIGradient")
             g.Rotation=135
             g.Color=ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Color3.new(
-                    math.min(T.AccentDim.R*1.5,1),
-                    math.min(T.AccentDim.G*1.5,1),
-                    math.min(T.AccentDim.B*1.5,1)
-                )),
-                ColorSequenceKeypoint.new(1, T.AccentDim),
+                ColorSequenceKeypoint.new(0, T.CardHover),
+                ColorSequenceKeypoint.new(1, T.Card),
             })
             g.Parent=iconInner
         end
@@ -544,14 +540,6 @@ function NexusUI:CreateWindow(config)
         img.ScaleType = Enum.ScaleType.Crop
         img.Parent    = iconInner
         do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,10); c.Parent=img end
-
-        -- Brilho sutil no topo (efeito de vidro)
-        local shine = Instance.new("Frame")
-        shine.BackgroundColor3       = Color3.fromRGB(255,255,255)
-        shine.BackgroundTransparency = 0.75
-        shine.Size                   = UDim2.new(1,0,0,1)
-        shine.BorderSizePixel        = 0
-        shine.Parent                 = iconInner
     else
         local ab = Instance.new("Frame")
         ab.BackgroundColor3 = T.Accent
