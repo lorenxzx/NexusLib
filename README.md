@@ -6,7 +6,7 @@
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║    ╚██████╔╝██║
     ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚═╝
 
-    NexusUI v2.0.0  —  Moder5454n Roblox UI Library
+    NexusUI v2.0.0  —  Moddddern Roblox UI Library
 
     FIX DEFINITIVO DOS CANTOS:
       UIStroke + ClipsDescendants no MESMO frame sempre vaza.
@@ -536,13 +536,14 @@ function NexusUI:CreateWindow(config)
             g.Parent=iconInner
         end
 
-        -- Imagem
+        -- Imagem com UICorner próprio para garantir arredondamento
         local img = Instance.new("ImageLabel")
         img.BackgroundTransparency = 1
-        img.Size      = UDim2.new(1,0,1,0)
+        img.Size      = UDim2.new(1, 0, 1, 0)
         img.Image     = winIcon
-        img.ScaleType = Enum.ScaleType.Fit
+        img.ScaleType = Enum.ScaleType.Crop
         img.Parent    = iconInner
+        do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,10); c.Parent=img end
 
         -- Brilho sutil no topo (efeito de vidro)
         local shine = Instance.new("Frame")
