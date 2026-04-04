@@ -6,10 +6,9 @@
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║    ╚██████╔╝██║
     ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚═╝
 
-    NexusUI v2.0.0  —  Moderndsfsfddsdsdfs Roblox UI Library
+    NexusUI v2.0.0  —  Modern Roblox UI Library
 
-    FIX DEFINITIVO DOS CANTOS:
-      UIStroke + ClipsDescendants no MESMO frame sempre vaza.
+    Fdasasadsadsadsaendants no MESMO frame sempre vaza.
       MakeRoundedFrame() cria 2 layers:
         outer → UICorner + UIStroke, fundo transparente, SEM ClipsDescendants
         inner → UICorner + ClipsDescendants, tem a cor de fundo, SEM UIStroke
@@ -808,14 +807,57 @@ function NexusUI:CreateWindow(config)
         d.Parent           = sidebar
     end
 
+    -- ── Barra de pesquisa (topo da sidebar) ─────────────
+    local searchOuter, searchInner = MakeRoundedFrame(sidebar, T.Card, 6, T.Border, 1)
+    searchOuter.Size     = UDim2.new(1, -16, 0, 28)
+    searchOuter.Position = UDim2.new(0, 8, 0, 8)
+    searchOuter.ZIndex   = 4
+
+    -- Ícone lupa
+    local lupaLbl = Instance.new("TextLabel")
+    lupaLbl.BackgroundTransparency = 1
+    lupaLbl.Size       = UDim2.new(0, 20, 1, 0)
+    lupaLbl.Position   = UDim2.new(0, 6, 0, 0)
+    lupaLbl.Text       = "o/"    -- simula lupa com ASCII
+    lupaLbl.TextColor3 = T.TextDisabled
+    lupaLbl.TextSize   = 10
+    lupaLbl.Font       = Enum.Font.GothamBold
+    lupaLbl.Parent     = searchInner
+
+    local searchBox = Instance.new("TextBox")
+    searchBox.BackgroundTransparency = 1
+    searchBox.Size             = UDim2.new(1, -26, 1, 0)
+    searchBox.Position         = UDim2.new(0, 24, 0, 0)
+    searchBox.PlaceholderText  = "Pesquisar..."
+    searchBox.PlaceholderColor3 = T.TextDisabled
+    searchBox.Text             = ""
+    searchBox.TextColor3       = T.Text
+    searchBox.TextSize         = 11
+    searchBox.Font             = Enum.Font.Gotham
+    searchBox.TextXAlignment   = Enum.TextXAlignment.Left
+    searchBox.ClearTextOnFocus = false
+    searchBox.Parent           = searchInner
+
+    -- Foco: destaca borda
+    local searchStroke = searchOuter:FindFirstChildOfClass("UIStroke")
+    searchBox.Focused:Connect(function()
+        if searchStroke then Tween(searchStroke, {Color=T.Accent}, 0.15) end
+        Tween(searchInner, {BackgroundColor3=T.CardHover}, 0.15)
+    end)
+    searchBox.FocusLost:Connect(function()
+        if searchStroke then Tween(searchStroke, {Color=T.Border}, 0.15) end
+        Tween(searchInner, {BackgroundColor3=T.Card}, 0.15)
+    end)
+
     local tabScroll = Instance.new("ScrollingFrame")
     tabScroll.BackgroundTransparency = 1
-    tabScroll.Size                   = UDim2.new(1, 0, 1, 0)
-    tabScroll.ScrollBarThickness     = 0   -- oculta barra nativa (track preto)
+    tabScroll.Size                   = UDim2.new(1, 0, 1, -44)   -- 44px para a search bar
+    tabScroll.Position               = UDim2.new(0, 0, 0, 44)
+    tabScroll.ScrollBarThickness     = 0
     tabScroll.CanvasSize             = UDim2.new(0,0,0,0)
     tabScroll.AutomaticCanvasSize    = Enum.AutomaticSize.Y
     tabScroll.Parent                 = sidebar
-    AddPadding(tabScroll, 8, 8, 8, 8)
+    AddPadding(tabScroll, 4, 8, 8, 8)
 
     local tabLayout = Instance.new("UIListLayout")
     tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -903,6 +945,89 @@ function NexusUI:CreateWindow(config)
     Win._subRow        = subRow
     Win._pillTagRow    = pillTagRow
     Win._tagCount      = 0
+
+    -- ── Lógica de pesquisa ───────────────────────────────
+    -- Filtra tabs baseado no texto digitado. Checa:
+    --   1. Nome da tab
+    --   2. Labels de todos os elementos dentro dela
+    local noResultsLbl = Instance.new("TextLabel")
+    noResultsLbl.BackgroundTransparency = 1
+    noResultsLbl.Size           = UDim2.new(1, -16, 0, 40)
+    noResultsLbl.Position       = UDim2.new(0, 8, 0, 0)
+    noResultsLbl.Text           = "Sem resultados"
+    noResultsLbl.TextColor3     = T.TextDisabled
+    noResultsLbl.TextSize       = 11
+    noResultsLbl.Font           = Enum.Font.Gotham
+    noResultsLbl.TextXAlignment = Enum.TextXAlignment.Center
+    noResultsLbl.Visible        = false
+    noResultsLbl.Parent         = tabScroll
+
+    searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+        local query = searchBox.Text:lower():match("^%s*(.-)%s*$")
+        local anyVisible = false
+        local newActive  = nil
+
+        for _, t in ipairs(Win._tabs) do
+            local match = false
+
+            if query == "" then
+                match = true
+            else
+                -- Checa nome da tab
+                if t._label.Text:lower():find(query, 1, true) then
+                    match = true
+                end
+                -- Checa labels dos elementos
+                if not match then
+                    for _, lbl in ipairs(t._labels) do
+                        if lbl:find(query, 1, true) then
+                            match = true
+                            break
+                        end
+                    end
+                end
+            end
+
+            -- Mostra ou oculta o botão da tab com animação
+            if match then
+                anyVisible = true
+                t._btn.Visible = true
+                Tween(t._btn, {BackgroundTransparency = Win._activeTab == t and 0 or 1}, 0.15)
+                if newActive == nil then newActive = t end
+            else
+                Tween(t._btn, {BackgroundTransparency = 1}, 0.1)
+                task.delay(0.12, function()
+                    if not (t._label.Text:lower():find(query, 1, true)) then
+                        -- Só oculta se ainda não for match
+                        local stillMatch = false
+                        local q2 = searchBox.Text:lower():match("^%s*(.-)%s*$")
+                        if t._label.Text:lower():find(q2, 1, true) then stillMatch = true end
+                        if not stillMatch then
+                            for _, lbl2 in ipairs(t._labels) do
+                                if lbl2:find(q2, 1, true) then stillMatch = true; break end
+                            end
+                        end
+                        t._btn.Visible = stillMatch
+                    end
+                end)
+            end
+        end
+
+        noResultsLbl.Visible = not anyVisible
+
+        -- Se a tab ativa sumiu, ativa a primeira visível
+        if query ~= "" and newActive and Win._activeTab ~= newActive then
+            if not Win._activeTab._btn.Visible then
+                newActive._btn.MouseButton1Click:Fire()
+            end
+        end
+        -- Se limpou a pesquisa, garante que a tab ativa ainda está visível
+        if query == "" then
+            for _, t in ipairs(Win._tabs) do
+                t._btn.Visible = true
+            end
+        end
+    end)
 
     -- Helper local: cria um badge num parent qualquer
     local function makeBadge(parent, text, tagColor, layoutOrder)
@@ -1085,6 +1210,7 @@ function NexusUI:CreateWindow(config)
         tab._icon      = iconImg
         tab._scroll    = scroll
         tab._theme     = T
+        tab._labels    = {}   -- labels de todos os elementos para pesquisa
 
         -- Troca de tab
         btn.MouseButton1Click:Connect(function()
@@ -1124,6 +1250,7 @@ function NexusUI:CreateWindow(config)
         --  SECTION
         -- ────────────────────────────────────────
         function tab:AddSection(sLabel)
+            table.insert(self._labels, sLabel:lower())
             local sf = Instance.new("Frame")
             sf.BackgroundTransparency = 1
             sf.Size   = UDim2.new(1, 0, 0, 22)
@@ -1157,6 +1284,7 @@ function NexusUI:CreateWindow(config)
             cfg = cfg or {}
             local lbl = cfg.Label    or "Botão"
             local cb  = cfg.Callback or function() end
+            table.insert(self._labels, lbl:lower())
 
             local outer, inner = MakeRoundedFrame(scroll, T.Card, 6, T.CardBorder, 1)
             outer.Size = UDim2.new(1, 0, 0, 38)
@@ -1207,6 +1335,7 @@ function NexusUI:CreateWindow(config)
             local default = cfg.Default  or false
             local cb      = cfg.Callback or function() end
             local toggled = default
+            table.insert(self._labels, lbl:lower())
 
             local outer, inner = MakeRoundedFrame(scroll, T.Card, 6, T.CardBorder, 1)
             outer.Size = UDim2.new(1, 0, 0, 38)
@@ -1278,6 +1407,7 @@ function NexusUI:CreateWindow(config)
             local decimals = cfg.Decimals or 0
             local cb       = cfg.Callback or function() end
             local cur      = defVal
+            table.insert(self._labels, lbl:lower())
 
             local outer, inner = MakeRoundedFrame(scroll, T.Card, 6, T.CardBorder, 1)
             outer.Size = UDim2.new(1, 0, 0, 58)
@@ -1378,6 +1508,7 @@ function NexusUI:CreateWindow(config)
             local placeholder = cfg.Placeholder or "Digite aqui..."
             local cb          = cfg.Callback    or function() end
             local onChange    = cfg.OnChange    or nil
+            table.insert(self._labels, lbl:lower())
 
             local outer, inner = MakeRoundedFrame(scroll, T.Card, 6, T.CardBorder, 1)
             outer.Size = UDim2.new(1, 0, 0, 60)
