@@ -6,7 +6,9 @@
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║    ╚██████╔╝██║
     ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚═╝
 
-    NexusUIsdfsdfsdfsdfsdfsdfsdfsfdsfdsfdsdfsdfdsfdsfdsfdss
+    NexusUI v2.0.0  —  Modern Roblox UI Library
+
+    FIX DEFINITIVO DOS CANTOS:
       UIStroke + ClipsDescendants no MESMO frame sempre vaza.
       MakeRoundedFrame() cria 2 layers:
         outer → UICorner + UIStroke, fundo transparente, SEM ClipsDescendants
@@ -554,7 +556,7 @@ function NexusUI:CreateWindow(config)
             errLbl.Font=Enum.Font.Gotham; errLbl.TextXAlignment=Enum.TextXAlignment.Left
             errLbl.LayoutOrder=3; errLbl.ZIndex=11; errLbl.Parent=body
 
-            -- Linha de botões (Pegar Key + Confirmar lado a lado se tiver link, ou só Confirmar)
+            -- Linha de botões — só o Confirmar (largura total)
             local btnRow = Instance.new("Frame")
             btnRow.BackgroundTransparency = 1
             btnRow.Size         = UDim2.new(1, 0, 0, 32)
@@ -562,64 +564,10 @@ function NexusUI:CreateWindow(config)
             btnRow.ZIndex       = 11
             btnRow.Parent       = body
 
-            local btnRowLayout = Instance.new("UIListLayout")
-            btnRowLayout.FillDirection  = Enum.FillDirection.Horizontal
-            btnRowLayout.Padding        = UDim.new(0, 8)
-            btnRowLayout.SortOrder      = Enum.SortOrder.LayoutOrder
-            btnRowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-            btnRowLayout.Parent         = btnRow
-
-            -- Botão "Pegar Key" (só aparece se KeyLink estiver definido)
-            if ksLink then
-                local linkOuter, linkInner = MakeRoundedFrame(btnRow, T.Card, 6, T.Border, 1)
-                linkOuter.Size         = UDim2.new(0.42, 0, 1, 0)
-                linkOuter.LayoutOrder  = 1
-
-                local linkLbl = Instance.new("TextLabel")
-                linkLbl.BackgroundTransparency = 1
-                linkLbl.Size      = UDim2.new(1, 0, 1, 0)
-                linkLbl.Text      = "Pegar Key"
-                linkLbl.TextColor3 = T.AccentText
-                linkLbl.TextSize  = 12
-                linkLbl.Font      = Enum.Font.GothamBold
-                linkLbl.ZIndex    = 12
-                linkLbl.Parent    = linkInner
-
-                local linkHit = Instance.new("TextButton")
-                linkHit.BackgroundTransparency = 1
-                linkHit.Size   = UDim2.new(1, 0, 1, 0)
-                linkHit.Text   = ""
-                linkHit.ZIndex = 13
-                linkHit.Parent = linkInner
-
-                linkHit.MouseEnter:Connect(function()
-                    Tween(linkInner, {BackgroundColor3=T.CardHover}, 0.12)
-                end)
-                linkHit.MouseLeave:Connect(function()
-                    Tween(linkInner, {BackgroundColor3=T.Card}, 0.12)
-                end)
-                linkHit.MouseButton1Click:Connect(function()
-                    -- Abre o link no navegador padrão do sistema
-                    pcall(function()
-                        setclipboard(ksLink)
-                    end)
-                    -- Tenta abrir diretamente (funciona em alguns executores)
-                    pcall(function()
-                        game:GetService("GuiService"):OpenBrowserWindow(ksLink)
-                    end)
-                    -- Feedback visual
-                    linkLbl.Text = "Link copiado!"
-                    task.delay(2, function()
-                        linkLbl.Text = "Pegar Key"
-                    end)
-                end)
-            end
-
-            -- Botão confirmar
-            local confirmW = ksLink and 0.58 or 1
+            -- Botão confirmar (largura total)
             local btnOuter, btnInner = MakeRoundedFrame(btnRow, T.Accent, 6, nil, 0)
-            btnOuter.Size        = UDim2.new(confirmW, ksLink and -4 or 0, 1, 0)
-            btnOuter.LayoutOrder = 2
+            btnOuter.Size        = UDim2.new(1, 0, 1, 0)
+            btnOuter.LayoutOrder = 1
 
             local btnLbl=Instance.new("TextLabel")
             btnLbl.BackgroundTransparency=1; btnLbl.Size=UDim2.new(1,0,1,0)
