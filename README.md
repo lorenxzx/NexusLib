@@ -6,8 +6,7 @@
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║    ╚██████╔╝██║
     ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚═╝
 
-    NexusUI v2.0.0  —  Modern Roblox UI Library
-
+    NexusUI v2.0.0  —  testekey
     FIX DEFINITIVO DOS CANTOS:
       UIStroke + ClipsDescendants no MESMO frame sempre vaza.
       MakeRoundedFrame() cria 2 layers:
@@ -408,9 +407,26 @@ function NexusUI:CreateWindow(config)
         local ksSave     = ks.SaveKey  ~= false
         local ksFromSite = ks.GrabKeyFromSite == true
         local ksKeys     = ks.Key  or {}
-        local ksLink     = ks.KeyLink or nil   -- URL para obter a key (Discord, site, etc.)
         local themeName  = cfg.Theme or "Dark"
         local T          = Themes[themeName] or Themes.Dark
+
+        -- Resolve o KeyLink:
+        -- Se for só um código curto (ex: "ABC123" sem http), assume Discord invite
+        -- Se for um link completo, usa direto
+        local ksLink = nil
+        if ks.KeyLink then
+            local raw = tostring(ks.KeyLink)
+            if raw:match("^https?://") then
+                -- Link completo (site, pastebin, etc.)
+                ksLink = raw
+            else
+                -- Código de convite do Discord — constrói o link
+                -- Remove qualquer "discord.gg/" que o usuário tenha colocado por engano
+                local code = raw:match("discord%.gg/(.+)") or raw
+                code = code:match("^%s*(.-)%s*$")  -- trim
+                ksLink = "https://discord.gg/" .. code
+            end
+        end
 
         -- Retorna uma promise-like: bloqueia até key ser validada
         local validated = false
@@ -609,14 +625,26 @@ function NexusUI:CreateWindow(config)
                 end)
 
                 linkHit.MouseButton1Click:Connect(function()
-                    -- Copia link pro clipboard (única forma confiável em executores)
+                    -- Tenta abrir no browser (funciona em alguns executores)
+                    local opened = false
+                    pcall(function()
+                        game:GetService("GuiService"):OpenBrowserWindow(ksLink)
+                        opened = true
+                    end)
+
+                    -- Sempre copia pro clipboard como fallback seguro
                     pcall(function() setclipboard(ksLink) end)
-                    -- Feedback visual
+
+                    -- Feedback
                     local prev = linkLbl.Text
-                    linkLbl.Text = "Link copiado!"
+                    if opened then
+                        linkLbl.Text      = "Abrindo..."
+                    else
+                        linkLbl.Text      = "Link copiado!"
+                    end
                     linkLbl.TextColor3 = T.Success
                     task.delay(2, function()
-                        linkLbl.Text = prev
+                        linkLbl.Text      = prev
                         linkLbl.TextColor3 = T.AccentText
                     end)
                 end)
