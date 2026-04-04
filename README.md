@@ -6,13 +6,7 @@
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║    ╚██████╔╝██║
     ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚═╝
 
-    NexusUI v2.0.0  —  Modern Roblox UI Library
-
-    FIX DEFINITIVO DOS CANTOS:
-      UIStroke + ClipsDescendants no MESMO frame sempre vaza.
-      MakeRoundedFrame() cria 2 layers:
-        outer → UICorner + UIStroke, fundo transparente, SEM ClipsDescendants
-        inner → UICorner + ClipsDescendants, tem a cor de fundo, SEM UIStroke
+    NexusUI v2.0.0  —  sddsdsdadsadsadsaasts, tem a cor de fundo, SEM UIStroke
       Todo elemento bordado usa esse padrão — janela, notificações, cards, inputs.
 ]]
 
@@ -967,44 +961,52 @@ function NexusUI:CreateWindow(config)
 
         searchBox:GetPropertyChangedSignal("Text"):Connect(function()
             local query    = searchBox.Text:lower():match("^%s*(.-)%s*$")
-            local anyVisible = false
-            local newActive  = nil
+            local anyTabVisible = false
+            local firstVisible  = nil
 
             for _, t in ipairs(Win._tabs) do
-                local match = false
-
                 if query == "" then
-                    match = true
-                else
-                    if t._label.Text:lower():find(query, 1, true) then
-                        match = true
+                    -- Sem pesquisa: mostra tudo
+                    t._btn.Visible = true
+                    for _, el in ipairs(t._elements) do
+                        if el.frame then el.frame.Visible = true end
                     end
-                    if not match then
-                        for _, lbl in ipairs(t._labels) do
-                            if lbl:find(query, 1, true) then match = true; break end
+                    anyTabVisible = true
+                else
+                    -- Mostra/oculta elementos individuais
+                    local tabHasMatch = false
+
+                    -- Checa também o nome da tab
+                    if t._label.Text:lower():find(query, 1, true) then
+                        tabHasMatch = true
+                        -- Se a tab inteira bate, mostra todos os elementos
+                        for _, el in ipairs(t._elements) do
+                            if el.frame then el.frame.Visible = true end
+                        end
+                    else
+                        -- Checa elemento por elemento
+                        for _, el in ipairs(t._elements) do
+                            if el.frame then
+                                local match = el.label:find(query, 1, true) ~= nil
+                                el.frame.Visible = match
+                                if match then tabHasMatch = true end
+                            end
                         end
                     end
-                end
 
-                t._btn.Visible = match
-                if match then
-                    anyVisible = true
-                    if newActive == nil then newActive = t end
+                    t._btn.Visible = tabHasMatch
+                    if tabHasMatch then
+                        anyTabVisible = true
+                        if firstVisible == nil then firstVisible = t end
+                    end
                 end
             end
 
-            noResultsLbl.Visible = not anyVisible
+            noResultsLbl.Visible = (query ~= "" and not anyTabVisible)
 
-            -- Se a tab ativa ficou oculta, ativa a primeira visível
-            if newActive and not Win._activeTab._btn.Visible then
-                newActive._btn.MouseButton1Click:Fire()
-            end
-
-            -- Ao limpar, garante que todas as tabs voltam
-            if query == "" then
-                for _, t in ipairs(Win._tabs) do
-                    t._btn.Visible = true
-                end
+            -- Se a tab ativa ficou oculta, ativa a primeira visível com resultado
+            if query ~= "" and firstVisible and not Win._activeTab._btn.Visible then
+                firstVisible._btn.MouseButton1Click:Fire()
             end
         end)
     end
@@ -1190,7 +1192,7 @@ function NexusUI:CreateWindow(config)
         tab._icon      = iconImg
         tab._scroll    = scroll
         tab._theme     = T
-        tab._labels    = {}   -- labels de todos os elementos para pesquisa
+        tab._elements  = {}   -- {label=string, frame=Frame} para pesquisa
 
         -- Troca de tab
         btn.MouseButton1Click:Connect(function()
@@ -1230,7 +1232,7 @@ function NexusUI:CreateWindow(config)
         --  SECTION
         -- ────────────────────────────────────────
         function tab:AddSection(sLabel)
-            table.insert(self._labels, sLabel:lower())
+            table.insert(self._elements, {label=sLabel:lower(), frame=nil}) -- sections não têm frame próprio visível
             local sf = Instance.new("Frame")
             sf.BackgroundTransparency = 1
             sf.Size   = UDim2.new(1, 0, 0, 22)
@@ -1264,7 +1266,6 @@ function NexusUI:CreateWindow(config)
             cfg = cfg or {}
             local lbl = cfg.Label    or "Botão"
             local cb  = cfg.Callback or function() end
-            table.insert(self._labels, lbl:lower())
 
             local outer, inner = MakeRoundedFrame(scroll, T.Card, 6, T.CardBorder, 1)
             outer.Size = UDim2.new(1, 0, 0, 38)
@@ -1303,6 +1304,7 @@ function NexusUI:CreateWindow(config)
             hit.MouseButton1Down:Connect(function() Tween(inner,{BackgroundColor3=T.CardPress},0.07) end)
             hit.MouseButton1Up:Connect(function()   Tween(inner,{BackgroundColor3=T.CardHover},0.1); cb() end)
 
+            table.insert(self._elements, {label=lbl:lower(), frame=outer})
             return outer
         end
 
@@ -1315,7 +1317,6 @@ function NexusUI:CreateWindow(config)
             local default = cfg.Default  or false
             local cb      = cfg.Callback or function() end
             local toggled = default
-            table.insert(self._labels, lbl:lower())
 
             local outer, inner = MakeRoundedFrame(scroll, T.Card, 6, T.CardBorder, 1)
             outer.Size = UDim2.new(1, 0, 0, 38)
@@ -1372,6 +1373,7 @@ function NexusUI:CreateWindow(config)
             local obj = {}
             function obj:Set(v) toggled=v; refresh() end
             function obj:Get() return toggled end
+            table.insert(self._elements, {label=lbl:lower(), frame=outer})
             return obj
         end
 
@@ -1387,7 +1389,6 @@ function NexusUI:CreateWindow(config)
             local decimals = cfg.Decimals or 0
             local cb       = cfg.Callback or function() end
             local cur      = defVal
-            table.insert(self._labels, lbl:lower())
 
             local outer, inner = MakeRoundedFrame(scroll, T.Card, 6, T.CardBorder, 1)
             outer.Size = UDim2.new(1, 0, 0, 58)
@@ -1476,6 +1477,7 @@ function NexusUI:CreateWindow(config)
             local obj = {}
             function obj:Set(v) setVal(v) end
             function obj:Get() return cur end
+            table.insert(self._elements, {label=lbl:lower(), frame=outer})
             return obj
         end
 
@@ -1488,7 +1490,6 @@ function NexusUI:CreateWindow(config)
             local placeholder = cfg.Placeholder or "Digite aqui..."
             local cb          = cfg.Callback    or function() end
             local onChange    = cfg.OnChange    or nil
-            table.insert(self._labels, lbl:lower())
 
             local outer, inner = MakeRoundedFrame(scroll, T.Card, 6, T.CardBorder, 1)
             outer.Size = UDim2.new(1, 0, 0, 60)
@@ -1538,6 +1539,7 @@ function NexusUI:CreateWindow(config)
             local obj = {}
             function obj:Get() return tb.Text end
             function obj:Set(v) tb.Text = v end
+            table.insert(self._elements, {label=lbl:lower(), frame=outer})
             return obj
         end
 
