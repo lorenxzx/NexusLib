@@ -356,17 +356,31 @@ function NexusUI:CreateWindow(config)
 
     local T = Themes[themeName] or Themes.Dark
 
-    -- ── Janela principal ──
-    local Window = CreateInstance("Frame", {
-        Name = "NexusWindow",
-        BackgroundColor3 = T.Background,
+    -- ── Wrapper externo: apenas bordas + sombra, sem clip ──
+    -- O clip num Frame com UICorner "corta" o stroke nos cantos,
+    -- causando o vazamento visual. Separamos as responsabilidades:
+    --   OuterFrame → stroke + corner (sem ClipsDescendants)
+    --   Window     → clip + cor de fundo (sem stroke próprio)
+    local OuterFrame = CreateInstance("Frame", {
+        Name = "NexusOuter",
+        BackgroundTransparency = 1,
         Size = size,
         Position = position,
         Parent = ScreenGui,
+    })
+    AddCorner(OuterFrame, 12)
+    AddStroke(OuterFrame, T.Border, 1)
+
+    -- ── Janela principal (clip container) ──
+    local Window = CreateInstance("Frame", {
+        Name = "NexusWindow",
+        BackgroundColor3 = T.Background,
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        Parent = OuterFrame,
         ClipsDescendants = true,
     })
     AddCorner(Window, 12)
-    AddStroke(Window, T.Border, 1)
 
     -- ── Barra de título ──
     local TitleBar = CreateInstance("Frame", {
@@ -419,9 +433,9 @@ function NexusUI:CreateWindow(config)
     })
     AddCorner(closeBtn, 7)
     closeBtn.MouseButton1Click:Connect(function()
-        Tween(Window, { Size = UDim2.new(0, Window.AbsoluteSize.X, 0, 0) }, 0.25)
+        Tween(OuterFrame, { Size = UDim2.new(0, OuterFrame.AbsoluteSize.X, 0, 0) }, 0.25)
         task.wait(0.3)
-        Window:Destroy()
+        OuterFrame:Destroy()
     end)
 
     -- Botão minimizar
@@ -439,14 +453,14 @@ function NexusUI:CreateWindow(config)
     minimizeBtn.MouseButton1Click:Connect(function()
         minimized = not minimized
         if minimized then
-            normalSize = Window.Size
-            Tween(Window, { Size = UDim2.new(normalSize.X.Scale, normalSize.X.Offset, 0, 46) }, 0.3)
+            normalSize = OuterFrame.Size
+            Tween(OuterFrame, { Size = UDim2.new(normalSize.X.Scale, normalSize.X.Offset, 0, 46) }, 0.3)
         else
-            Tween(Window, { Size = normalSize }, 0.3)
+            Tween(OuterFrame, { Size = normalSize }, 0.3)
         end
     end)
 
-    MakeDraggable(Window, TitleBar)
+    MakeDraggable(OuterFrame, TitleBar)
 
     -- ── Sidebar de Tabs ──
     local Sidebar = CreateInstance("Frame", {
@@ -487,12 +501,24 @@ function NexusUI:CreateWindow(config)
     WindowObj._theme = T
     WindowObj._tabs = {}
     WindowObj._activeTab = nil
-    WindowObj._frame = Window
+    WindowObj._frame = OuterFrame
 
     -- ── ADICIONAR TAB ──
     function WindowObj:AddTab(label, icon)
         local tab = {}
         tab._elements = {}
+
+        -- Normaliza o AssetId: aceita número, string com/sem "rbxassetid://"
+        local function resolveIcon(raw)
+            if not raw or raw == "" then return nil end
+            local s = tostring(raw)
+            -- já tem prefixo
+            if s:lower():find("rbxassetid://") then return s end
+            -- só números
+            if s:match("^%d+$") then return "rbxassetid://" .. s end
+            return s
+        end
+        local iconId = resolveIcon(icon)
 
         local isFirst = #self._tabs == 0
 
@@ -505,18 +531,6 @@ function NexusUI:CreateWindow(config)
         })
         AddCorner(tabBtn, 7)
 
-        local tabLabel = CreateInstance("TextLabel", {
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, -10, 1, 0),
-            Position = UDim2.new(0, 10, 0, 0),
-            Text = label,
-            TextColor3 = isFirst and T.Text or T.TextMuted,
-            TextSize = 12,
-            Font = isFirst and Enum.Font.GothamBold or Enum.Font.Gotham,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Parent = tabBtn,
-        })
-
         -- Indicador lateral
         local indicator = CreateInstance("Frame", {
             BackgroundColor3 = T.Accent,
@@ -526,6 +540,35 @@ function NexusUI:CreateWindow(config)
             Parent = tabBtn,
         })
         AddCorner(indicator, 3)
+
+        local iconOffset = 10  -- deslocamento base do label
+
+        if iconId then
+            -- Ícone ImageLabel
+            local iconImg = CreateInstance("ImageLabel", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(0, 16, 0, 16),
+                Position = UDim2.new(0, 10, 0.5, -8),
+                Image = iconId,
+                ImageColor3 = isFirst and T.Text or T.TextMuted,
+                ScaleType = Enum.ScaleType.Fit,
+                Parent = tabBtn,
+            })
+            tab._icon = iconImg
+            iconOffset = 32  -- empurra o label para a direita do ícone
+        end
+
+        local tabLabel = CreateInstance("TextLabel", {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, -(iconOffset + 6), 1, 0),
+            Position = UDim2.new(0, iconOffset, 0, 0),
+            Text = label,
+            TextColor3 = isFirst and T.Text or T.TextMuted,
+            TextSize = 12,
+            Font = isFirst and Enum.Font.GothamBold or Enum.Font.Gotham,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = tabBtn,
+        })
 
         -- Área de conteúdo da tab
         local tabContent = CreateInstance("ScrollingFrame", {
@@ -550,6 +593,7 @@ function NexusUI:CreateWindow(config)
         tab._indicator = indicator
         tab._content = tabContent
         tab._theme = T
+        -- tab._icon já foi setado acima se houver ícone
 
         -- Lógica de troca de tab
         tabBtn.MouseButton1Click:Connect(function()
@@ -562,6 +606,9 @@ function NexusUI:CreateWindow(config)
                 prev._label.TextColor3 = T.TextMuted
                 prev._label.Font = Enum.Font.Gotham
                 Tween(prev._indicator, { BackgroundTransparency = 1 }, 0.2)
+                if prev._icon then
+                    Tween(prev._icon, { ImageColor3 = T.TextMuted }, 0.2)
+                end
                 prev._content.Visible = false
             end
 
@@ -570,6 +617,9 @@ function NexusUI:CreateWindow(config)
             tabLabel.TextColor3 = T.Text
             tabLabel.Font = Enum.Font.GothamBold
             Tween(indicator, { BackgroundTransparency = 0 }, 0.2)
+            if tab._icon then
+                Tween(tab._icon, { ImageColor3 = T.Text }, 0.2)
+            end
             tabContent.Visible = true
             WindowObj._activeTab = tab
         end)
@@ -988,10 +1038,10 @@ local Win = NexusUI:CreateWindow({
     Size     = UDim2.new(0, 560, 0, 380),
 })
 
--- Adicionar tabs
-local TabGeral = Win:AddTab("Geral")
-local TabPlayer = Win:AddTab("Player")
-local TabConfig = Win:AddTab("Config")
+-- Adicionar tabs (ícone é opcional — aceita rbxassetid://, só o número, ou nil)
+local TabGeral  = Win:AddTab("Geral",  "rbxassetid://3926305904")  -- ícone de engrenagem
+local TabPlayer = Win:AddTab("Player", "4483345998")               -- só o número também funciona
+local TabConfig = Win:AddTab("Config")                             -- sem ícone
 
 -- ── Tab Geral ──
 TabGeral:AddSection("Movimentação")
