@@ -6,7 +6,7 @@
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║    ╚██████╔╝██║
     ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚═╝
 
-    receba
+    NexusUI v2.0.0 
 ]]
 
 local NexusUI  = {}
@@ -451,88 +451,108 @@ function NexusUI:CreateWindow(config)
     end)
 
     -- ── Pill de minimizado ──────────────────────────────
-    -- Raio 8px (menos redondo), suporte a ícone, botão ASCII
-    local pillW = winIcon and 240 or 210
+    -- AutomaticSize.X: cresce automaticamente com as tags
     local pillOuter, pillInner = MakeRoundedFrame(ScreenGui, T.TitleBg, 8, T.Border, 1)
-    pillOuter.Size     = UDim2.new(0, pillW, 0, 38)
-    pillOuter.Position = winPos
-    pillOuter.Visible  = false
+    pillOuter.Size          = UDim2.new(0, 0, 0, 38)
+    pillOuter.AutomaticSize = Enum.AutomaticSize.X
+    pillOuter.Position      = winPos
+    pillOuter.Visible       = false
 
-    local pillContentX = 12  -- cursor de posicionamento horizontal
+    -- Frame de conteúdo horizontal (itens fluem da esquerda para direita)
+    local pillContent = Instance.new("Frame")
+    pillContent.BackgroundTransparency = 1
+    pillContent.Size          = UDim2.new(0, 0, 1, 0)
+    pillContent.AutomaticSize = Enum.AutomaticSize.X
+    pillContent.Parent        = pillInner
+    AddPadding(pillContent, 0, 0, 10, 10)
 
-    -- Ícone da comunidade (opcional)
+    do
+        local l = Instance.new("UIListLayout")
+        l.FillDirection     = Enum.FillDirection.Horizontal
+        l.VerticalAlignment = Enum.VerticalAlignment.Center
+        l.Padding           = UDim.new(0, 8)
+        l.Parent            = pillContent
+    end
+
+    -- Ícone ou barra accent
     if winIcon then
         local iconFrame = Instance.new("Frame")
         iconFrame.BackgroundColor3 = T.AccentDim
         iconFrame.Size             = UDim2.new(0, 26, 0, 26)
-        iconFrame.Position         = UDim2.new(0, pillContentX, 0.5, -13)
         iconFrame.BorderSizePixel  = 0
-        iconFrame.Parent           = pillInner
+        iconFrame.LayoutOrder      = 1
+        iconFrame.Parent           = pillContent
         do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,6); c.Parent=iconFrame end
 
-        local iconImg = Instance.new("ImageLabel")
-        iconImg.BackgroundTransparency = 1
-        iconImg.Size       = UDim2.new(1,0,1,0)
-        iconImg.Image      = winIcon
-        iconImg.ScaleType  = Enum.ScaleType.Fit
-        iconImg.Parent     = iconFrame
-
-        pillContentX = pillContentX + 32
+        local img = Instance.new("ImageLabel")
+        img.BackgroundTransparency = 1
+        img.Size      = UDim2.new(1,0,1,0)
+        img.Image     = winIcon
+        img.ScaleType = Enum.ScaleType.Fit
+        img.Parent    = iconFrame
     else
-        -- Sem ícone: barra accent pequena
         local ab = Instance.new("Frame")
         ab.BackgroundColor3 = T.Accent
         ab.Size             = UDim2.new(0, 3, 0, 20)
-        ab.Position         = UDim2.new(0, pillContentX, 0.5, -10)
         ab.BorderSizePixel  = 0
-        ab.Parent           = pillInner
+        ab.LayoutOrder      = 1
+        ab.Parent           = pillContent
         do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,2); c.Parent=ab end
-        pillContentX = pillContentX + 10
     end
 
-    -- Texto do pill: "Título - v2.0.0"
+    -- Título
     do
         local pt = Instance.new("TextLabel")
         pt.BackgroundTransparency = 1
-        pt.Size           = UDim2.new(1, -(pillContentX + 36), 1, 0)
-        pt.Position       = UDim2.new(0, pillContentX, 0, 0)
-        pt.Text           = title .. "  " .. NexusUI.Version
-        pt.TextColor3     = T.Text
-        pt.TextSize       = 12
-        pt.Font           = Enum.Font.GothamBold
-        pt.TextXAlignment = Enum.TextXAlignment.Left
-        pt.TextTruncate   = Enum.TextTruncate.AtEnd
-        pt.Parent         = pillInner
+        pt.Size          = UDim2.new(0, 0, 1, 0)
+        pt.AutomaticSize = Enum.AutomaticSize.X
+        pt.Text          = title
+        pt.TextColor3    = T.Text
+        pt.TextSize      = 12
+        pt.Font          = Enum.Font.GothamBold
+        pt.LayoutOrder   = 2
+        pt.Parent        = pillContent
     end
 
-    -- Botão restaurar: "[+]" em ASCII puro — sem problemas de renderização
+    -- Row de tags do pill (preenchida pelo AddTag)
+    local pillTagRow = Instance.new("Frame")
+    pillTagRow.BackgroundTransparency = 1
+    pillTagRow.Size          = UDim2.new(0, 0, 1, 0)
+    pillTagRow.AutomaticSize = Enum.AutomaticSize.X
+    pillTagRow.LayoutOrder   = 3
+    pillTagRow.Parent        = pillContent
+    do
+        local l = Instance.new("UIListLayout")
+        l.FillDirection     = Enum.FillDirection.Horizontal
+        l.VerticalAlignment = Enum.VerticalAlignment.Center
+        l.Padding           = UDim.new(0, 4)
+        l.Parent            = pillTagRow
+    end
+
+    -- Botão restaurar
     local restoreBtn = Instance.new("TextButton")
     restoreBtn.BackgroundTransparency = 1
-    restoreBtn.Size       = UDim2.new(0, 32, 1, 0)
-    restoreBtn.Position   = UDim2.new(1, -34, 0, 0)
-    restoreBtn.Text       = "[+]"
-    restoreBtn.TextColor3 = T.TextMuted
-    restoreBtn.TextSize   = 11
-    restoreBtn.Font       = Enum.Font.GothamBold
-    restoreBtn.Parent     = pillInner
-    restoreBtn.MouseEnter:Connect(function()  Tween(restoreBtn,{TextColor3=T.Text},0.1) end)
-    restoreBtn.MouseLeave:Connect(function()  Tween(restoreBtn,{TextColor3=T.TextMuted},0.1) end)
+    restoreBtn.Size        = UDim2.new(0, 28, 1, 0)
+    restoreBtn.Text        = "[+]"
+    restoreBtn.TextColor3  = T.TextMuted
+    restoreBtn.TextSize    = 10
+    restoreBtn.Font        = Enum.Font.GothamBold
+    restoreBtn.LayoutOrder = 4
+    restoreBtn.Parent      = pillContent
+    restoreBtn.MouseEnter:Connect(function() Tween(restoreBtn,{TextColor3=T.Text},0.1) end)
+    restoreBtn.MouseLeave:Connect(function() Tween(restoreBtn,{TextColor3=T.TextMuted},0.1) end)
 
     MakeDraggable(pillOuter, pillInner)
 
     local minimized = false
     minimizeBtn.MouseButton1Click:Connect(function()
         minimized = true
-        -- Sincroniza posição do pill com a janela antes de mostrar
         pillOuter.Position = winOuter.Position
-        -- Anima janela saindo (encolhe para o pill)
-        Tween(winOuter, {Size=UDim2.new(0,220,0,0), Position=winOuter.Position}, 0.22)
-        task.wait(0.1)
-        winOuter.Visible = false
-        winOuter.Size    = winSize  -- reseta tamanho para restaurar depois
-        pillOuter.Size   = UDim2.new(0, 0, 0, 38)
+        Tween(winOuter, {Size=UDim2.new(0, winOuter.AbsoluteSize.X, 0, 0)}, 0.2)
+        task.wait(0.22)
+        winOuter.Visible  = false
+        winOuter.Size     = winSize
         pillOuter.Visible = true
-        Tween(pillOuter, {Size=UDim2.new(0,220,0,38)}, 0.22)
     end)
 
     restoreBtn.MouseButton1Click:Connect(function()
@@ -652,54 +672,75 @@ function NexusUI:CreateWindow(config)
     Win._tabs          = {}
     Win._activeTab     = nil
     Win._outer         = winOuter
-    Win._subRow        = subRow    -- linha do subtítulo (para AddTag)
-    Win._tagCount      = 0         -- contador de tags para LayoutOrder
+    Win._subRow        = subRow
+    Win._pillTagRow    = pillTagRow
+    Win._tagCount      = 0
 
-    -- ── ADD TAG ──────────────────────────────────────────
-    -- Cria um badge visual na área do subtítulo da titlebar.
-    -- Uso: Win:AddTag("beta")  ou  Win:AddTag(NexusUI.Version)
-    function Win:AddTag(text)
-        self._tagCount = self._tagCount + 1
+    -- Helper local: cria um badge num parent qualquer
+    local function makeBadge(parent, text, tagColor, layoutOrder)
+        -- Calcula cor de fundo: versão escurecida da cor da tag
+        local bg = Color3.new(
+            tagColor.R * 0.18 + T.TitleBg.R * 0.82,
+            tagColor.G * 0.18 + T.TitleBg.G * 0.82,
+            tagColor.B * 0.18 + T.TitleBg.B * 0.82
+        )
 
-        -- Frame externo: borda + corner (sem clip)
-        local tagOuter = Instance.new("Frame")
-        tagOuter.BackgroundTransparency = 1
-        tagOuter.Size                   = UDim2.new(0, 0, 1, -2)
-        tagOuter.AutomaticSize          = Enum.AutomaticSize.X
-        tagOuter.LayoutOrder            = self._tagCount
-        tagOuter.Parent                 = self._subRow
+        local outer = Instance.new("Frame")
+        outer.BackgroundTransparency = 1
+        outer.Size          = UDim2.new(0, 0, 1, -2)
+        outer.AutomaticSize = Enum.AutomaticSize.X
+        outer.LayoutOrder   = layoutOrder or 0
+        outer.Parent        = parent
 
-        do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,4); c.Parent=tagOuter end
+        do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,4); c.Parent=outer end
         do
             local s=Instance.new("UIStroke")
-            s.Color=T.Accent; s.Thickness=1
+            s.Color=tagColor; s.Thickness=1
             s.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
-            s.Parent=tagOuter
+            s.Parent=outer
         end
 
-        -- Frame interno: fundo + clip
-        local tagInner = Instance.new("Frame")
-        tagInner.BackgroundColor3 = T.AccentDim
-        tagInner.Size             = UDim2.new(1, 0, 1, 0)
-        tagInner.ClipsDescendants = true
-        tagInner.BorderSizePixel  = 0
-        tagInner.Parent           = tagOuter
-        do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,4); c.Parent=tagInner end
-        AddPadding(tagInner, 1, 1, 5, 5)
+        local inner = Instance.new("Frame")
+        inner.BackgroundColor3 = bg
+        inner.Size             = UDim2.new(1,0,1,0)
+        inner.ClipsDescendants = true
+        inner.BorderSizePixel  = 0
+        inner.Parent           = outer
+        do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,4); c.Parent=inner end
+        AddPadding(inner, 1, 1, 5, 5)
 
-        local tagLabel = Instance.new("TextLabel")
-        tagLabel.BackgroundTransparency = 1
-        tagLabel.Size           = UDim2.new(0, 0, 1, 0)
-        tagLabel.AutomaticSize  = Enum.AutomaticSize.X
-        tagLabel.Text           = text
-        tagLabel.TextColor3     = T.AccentText
-        tagLabel.TextSize       = 10
-        tagLabel.Font           = Enum.Font.GothamBold
-        tagLabel.TextXAlignment = Enum.TextXAlignment.Left
-        tagLabel.Parent         = tagInner
+        local lbl = Instance.new("TextLabel")
+        lbl.BackgroundTransparency = 1
+        lbl.Size           = UDim2.new(0, 0, 1, 0)
+        lbl.AutomaticSize  = Enum.AutomaticSize.X
+        lbl.Text           = text
+        lbl.TextColor3     = tagColor
+        lbl.TextSize       = 10
+        lbl.Font           = Enum.Font.GothamBold
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Parent         = inner
 
-        return tagOuter
+        return outer
     end
+
+    -- ── ADD TAG ──────────────────────────────────────────
+    -- Cria um badge na titlebar E no pill.
+    -- Uso:
+    --   Win:AddTag("beta")                              → cor accent padrão
+    --   Win:AddTag("beta", Color3.fromRGB(255,100,50))  → cor customizada
+    function Win:AddTag(text, color)
+        self._tagCount = self._tagCount + 1
+        local tagColor = color or T.Accent
+
+        -- Badge na titlebar (subRow)
+        makeBadge(self._subRow, text, tagColor, self._tagCount)
+
+        -- Badge no pill
+        makeBadge(self._pillTagRow, text, tagColor, self._tagCount)
+    end
+
+    -- ── Versão automática: adicionada como badge sem precisar chamar AddTag ──
+    Win:AddTag(NexusUI.Version)
 
     -- ════════════════════════════════════════
     --  ADD TAB
