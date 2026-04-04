@@ -6,7 +6,7 @@
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║    ╚██████╔╝██║
     ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚═╝
 
-    NexusUI v2.0.0 
+    NexusUI v2.0.0 11
 ]]
 
 local NexusUI  = {}
@@ -329,8 +329,21 @@ function NexusUI:CreateWindow(config)
     local themeName = cfg.Theme    or "Dark"
     local winSize   = cfg.Size     or UDim2.new(0, 580, 0, 400)
     local winPos    = cfg.Position or UDim2.new(0.5, -290, 0.5, -200)
-    local winIcon   = resolveIcon(cfg.Icon)   -- ícone opcional (aparece no pill)
+    local winIcon   = resolveIcon(cfg.Icon)
     local T         = Themes[themeName] or Themes.Dark
+
+    -- Detecta se o SubTitle contém NexusUI.Version (via concatenação)
+    -- Ex: SubTitle = "by você " .. NexusUI.Version
+    -- Se sim: remove a versão do texto e cria badge automático depois
+    local hasVersionBadge = false
+    local cleanSubtitle   = subtitle
+    if subtitle ~= "" and NexusUI.Version ~= "" then
+        local escaped = NexusUI.Version:gsub("([%.%+%-%*%?%[%]%^%$%(%)%%])", "%%%1")
+        if subtitle:find(escaped) then
+            cleanSubtitle    = subtitle:gsub("%s*" .. escaped .. "%s*", ""):match("^%s*(.-)%s*$") or ""
+            hasVersionBadge  = true
+        end
+    end
 
     -- ── Janela: outer (stroke) / inner (clip) ──────────
     local winOuter, winInner = MakeRoundedFrame(ScreenGui, T.WinBg, 8, T.Border, 1)
@@ -378,12 +391,12 @@ function NexusUI:CreateWindow(config)
         local c = Instance.new("UICorner"); c.CornerRadius=UDim.new(0,3); c.Parent=pill
     end
 
-    -- Título
+    -- Título (metade superior da titlebar)
     do
         local tl = Instance.new("TextLabel")
         tl.BackgroundTransparency = 1
-        tl.Size           = UDim2.new(0, 260, 0, 18)
-        tl.Position       = UDim2.new(0, 24, 0, 7)
+        tl.Size           = UDim2.new(0, 260, 0, 16)
+        tl.Position       = UDim2.new(0, 24, 0, 9)
         tl.Text           = title
         tl.TextColor3     = T.Text
         tl.TextSize       = 14
@@ -392,28 +405,28 @@ function NexusUI:CreateWindow(config)
         tl.Parent         = titleBar
     end
 
-    -- Linha do subtítulo + tags (horizontal, row)
+    -- Linha do subtítulo + tags (metade inferior da titlebar)
     local subRow = Instance.new("Frame")
     subRow.BackgroundTransparency = 1
-    subRow.Size                   = UDim2.new(1, -140, 0, 16)
+    subRow.Size                   = UDim2.new(1, -140, 0, 13)
     subRow.Position               = UDim2.new(0, 24, 0, 28)
-    subRow.ClipsDescendants       = true
+    subRow.ClipsDescendants       = false
     subRow.Parent                 = titleBar
 
     local subLayout = Instance.new("UIListLayout")
-    subLayout.FillDirection  = Enum.FillDirection.Horizontal
+    subLayout.FillDirection     = Enum.FillDirection.Horizontal
     subLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-    subLayout.SortOrder      = Enum.SortOrder.LayoutOrder
-    subLayout.Padding        = UDim.new(0, 6)
-    subLayout.Parent         = subRow
+    subLayout.SortOrder         = Enum.SortOrder.LayoutOrder
+    subLayout.Padding           = UDim.new(0, 5)
+    subLayout.Parent            = subRow
 
-    -- Texto do subtítulo
-    if subtitle ~= "" then
+    -- Texto do subtítulo (sem a versão, se foi detectada)
+    if cleanSubtitle ~= "" then
         local sl = Instance.new("TextLabel")
         sl.BackgroundTransparency = 1
         sl.Size           = UDim2.new(0, 0, 1, 0)
         sl.AutomaticSize  = Enum.AutomaticSize.X
-        sl.Text           = subtitle
+        sl.Text           = cleanSubtitle
         sl.TextColor3     = T.TextMuted
         sl.TextSize       = 11
         sl.Font           = Enum.Font.Gotham
@@ -470,6 +483,7 @@ function NexusUI:CreateWindow(config)
         local l = Instance.new("UIListLayout")
         l.FillDirection     = Enum.FillDirection.Horizontal
         l.VerticalAlignment = Enum.VerticalAlignment.Center
+        l.SortOrder         = Enum.SortOrder.LayoutOrder
         l.Padding           = UDim.new(0, 8)
         l.Parent            = pillContent
     end
@@ -687,7 +701,7 @@ function NexusUI:CreateWindow(config)
 
         local outer = Instance.new("Frame")
         outer.BackgroundTransparency = 1
-        outer.Size          = UDim2.new(0, 0, 1, -2)
+        outer.Size          = UDim2.new(0, 0, 0, 14)   -- altura FIXA 14px, largura auto
         outer.AutomaticSize = Enum.AutomaticSize.X
         outer.LayoutOrder   = layoutOrder or 0
         outer.Parent        = parent
@@ -739,8 +753,10 @@ function NexusUI:CreateWindow(config)
         makeBadge(self._pillTagRow, text, tagColor, self._tagCount)
     end
 
-    -- ── Versão automática: adicionada como badge sem precisar chamar AddTag ──
-    Win:AddTag(NexusUI.Version)
+    -- Badge de versão: só aparece se a pessoa concatenou NexusUI.Version no SubTitle
+    if hasVersionBadge then
+        Win:AddTag(NexusUI.Version)
+    end
 
     -- ════════════════════════════════════════
     --  ADD TAB
