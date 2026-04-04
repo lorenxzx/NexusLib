@@ -6,7 +6,7 @@
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║    ╚██████╔╝██║
     ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚═╝
 
-    NexusUI v2.0.0  — 22222
+    NexusUI v2.0.0  —  gg
 
     FIX DEFINITIVO DOS CANTOS:
       UIStroke + ClipsDescendants no MESMO frame sempre vaza.
@@ -411,22 +411,52 @@ function NexusUI:CreateWindow(config)
         local themeName  = cfg.Theme or "Dark"
         local T          = Themes[themeName] or Themes.Dark
 
-        -- Resolve o KeyLink:
-        -- Se for só um código curto (ex: "ABC123" sem http), assume Discord invite
-        -- Se for um link completo, usa direto
-        local ksLink = nil
+        -- Resolve o KeyLink e extrai o código puro do Discord se for invite
+        local ksLink     = nil
+        local ksDiscord  = nil   -- só o código (ex: "FTbPM62G"), usado no RPC
         if ks.KeyLink then
-            local raw = tostring(ks.KeyLink)
-            if raw:match("^https?://") then
-                -- Link completo (site, pastebin, etc.)
-                ksLink = raw
+            local raw = tostring(ks.KeyLink):match("^%s*(.-)%s*$")
+
+            -- Extrai código do convite (discord.gg/CODE ou discord.com/invite/CODE ou só CODE)
+            local code = raw:match("discord%.gg/([%w%-]+)")
+                      or raw:match("discord%.com/invite/([%w%-]+)")
+
+            if code then
+                -- É um convite do Discord
+                ksDiscord = code:sub(1, 32)
+                ksLink    = "https://discord.gg/" .. ksDiscord
+            elseif not raw:match("^https?://") and not raw:match("%.") then
+                -- Parece um código puro (sem http e sem ponto), assume Discord
+                ksDiscord = raw:sub(1, 32)
+                ksLink    = "https://discord.gg/" .. ksDiscord
             else
-                -- Código de convite do Discord — constrói o link
-                -- Remove qualquer "discord.gg/" que o usuário tenha colocado por engano
-                local code = raw:match("discord%.gg/(.+)") or raw
-                code = code:match("^%s*(.-)%s*$")  -- trim
-                ksLink = "https://discord.gg/" .. code
+                -- Link normal (site, pastebin, etc.)
+                ksLink = raw
             end
+        end
+
+        -- Função para abrir invite do Discord via RPC local (abre direto no app)
+        local function openDiscordInvite(code)
+            local HttpService = game:GetService("HttpService")
+            local requestFn = request or http_request or (syn and syn.request) or nil
+            if not requestFn then return false end
+
+            local ok = pcall(function()
+                requestFn({
+                    Url    = "http://127.0.0.1:6463/rpc?v=1",
+                    Method = "POST",
+                    Headers = {
+                        ["Content-Type"] = "application/json",
+                        ["Origin"]       = "https://discord.com",
+                    },
+                    Body = HttpService:JSONEncode({
+                        cmd   = "INVITE_BROWSER",
+                        nonce = HttpService:GenerateGUID(false),
+                        args  = { code = code },
+                    }),
+                })
+            end)
+            return ok
         end
 
         -- Retorna uma promise-like: bloqueia até key ser validada
@@ -626,14 +656,28 @@ function NexusUI:CreateWindow(config)
                 end)
 
                 linkHit.MouseButton1Click:Connect(function()
-                    -- setclipboard é o método mais confiável em todos os executores
-                    pcall(function() setclipboard(ksLink) end)
-
                     local prev = linkLbl.Text
-                    linkLbl.Text      = "Link copiado!"
+
+                    if ksDiscord then
+                        -- Tenta abrir direto no Discord Desktop via RPC local
+                        local opened = openDiscordInvite(ksDiscord)
+                        if opened then
+                            linkLbl.Text       = "Abrindo Discord..."
+                            linkLbl.TextColor3 = T.Success
+                            task.delay(2, function()
+                                linkLbl.Text       = prev
+                                linkLbl.TextColor3 = T.AccentText
+                            end)
+                            return
+                        end
+                    end
+
+                    -- Fallback: copia o link pro clipboard
+                    pcall(function() setclipboard(ksLink) end)
+                    linkLbl.Text       = "Link copiado!"
                     linkLbl.TextColor3 = T.Success
                     task.delay(2, function()
-                        linkLbl.Text      = prev
+                        linkLbl.Text       = prev
                         linkLbl.TextColor3 = T.AccentText
                     end)
                 end)
