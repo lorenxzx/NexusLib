@@ -421,7 +421,7 @@ function NexusUI:CreateWindow(config)
         return btn
     end
 
-    local closeBtn    = makeTitleBtn("✕", -40,  Color3.fromRGB(196, 43, 28))
+    local closeBtn    = makeTitleBtn("X", -40,  Color3.fromRGB(196, 43, 28))
     local maximizeBtn = makeTitleBtn("□", -80,  T.CardHover or Color3.fromRGB(44,44,50))
     local minimizeBtn = makeTitleBtn("─", -120, T.CardHover or Color3.fromRGB(44,44,50))
 
