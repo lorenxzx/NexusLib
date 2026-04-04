@@ -6,9 +6,7 @@
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║    ╚██████╔╝██║
     ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚═╝
 
-    NexusUI v2.0.0  —  Modern Roblox UI Library
-
-    FIX DEFINITIVO DOS CANTOS:
+    NexusUIsdfsdfsdfsdfsdfsdfsdfsfdsfdsfdsdfsdfdsfdsfdsfdss
       UIStroke + ClipsDescendants no MESMO frame sempre vaza.
       MakeRoundedFrame() cria 2 layers:
         outer → UICorner + UIStroke, fundo transparente, SEM ClipsDescendants
@@ -407,7 +405,8 @@ function NexusUI:CreateWindow(config)
         local ksFile     = ks.FileName or "NexusKey"
         local ksSave     = ks.SaveKey  ~= false
         local ksFromSite = ks.GrabKeyFromSite == true
-        local ksKeys     = ks.Key or {}
+        local ksKeys     = ks.Key  or {}
+        local ksLink     = ks.KeyLink or nil   -- URL para obter a key (Discord, site, etc.)
         local themeName  = cfg.Theme or "Dark"
         local T          = Themes[themeName] or Themes.Dark
 
@@ -456,8 +455,8 @@ function NexusUI:CreateWindow(config)
             -- Monta a tela de key
             local keyOuter, keyInner = MakeRoundedFrame(ScreenGui, T.WinBg, 8, T.Border, 1)
             keyOuter.Name     = "NexusKeyScreen"
-            keyOuter.Size     = UDim2.new(0, 400, 0, 240)
-            keyOuter.Position = UDim2.new(0.5, -200, 0.5, -120)
+            keyOuter.Size     = UDim2.new(0, 400, 0, ksLink and 282 or 240)
+            keyOuter.Position = UDim2.new(0.5, -200, 0.5, ksLink and -141 or -120)
             keyOuter.ZIndex   = 10
 
             -- Faixa de título
@@ -555,9 +554,72 @@ function NexusUI:CreateWindow(config)
             errLbl.Font=Enum.Font.Gotham; errLbl.TextXAlignment=Enum.TextXAlignment.Left
             errLbl.LayoutOrder=3; errLbl.ZIndex=11; errLbl.Parent=body
 
+            -- Linha de botões (Pegar Key + Confirmar lado a lado se tiver link, ou só Confirmar)
+            local btnRow = Instance.new("Frame")
+            btnRow.BackgroundTransparency = 1
+            btnRow.Size         = UDim2.new(1, 0, 0, 32)
+            btnRow.LayoutOrder  = 4
+            btnRow.ZIndex       = 11
+            btnRow.Parent       = body
+
+            local btnRowLayout = Instance.new("UIListLayout")
+            btnRowLayout.FillDirection  = Enum.FillDirection.Horizontal
+            btnRowLayout.Padding        = UDim.new(0, 8)
+            btnRowLayout.SortOrder      = Enum.SortOrder.LayoutOrder
+            btnRowLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+            btnRowLayout.Parent         = btnRow
+
+            -- Botão "Pegar Key" (só aparece se KeyLink estiver definido)
+            if ksLink then
+                local linkOuter, linkInner = MakeRoundedFrame(btnRow, T.Card, 6, T.Border, 1)
+                linkOuter.Size         = UDim2.new(0.42, 0, 1, 0)
+                linkOuter.LayoutOrder  = 1
+
+                local linkLbl = Instance.new("TextLabel")
+                linkLbl.BackgroundTransparency = 1
+                linkLbl.Size      = UDim2.new(1, 0, 1, 0)
+                linkLbl.Text      = "Pegar Key"
+                linkLbl.TextColor3 = T.AccentText
+                linkLbl.TextSize  = 12
+                linkLbl.Font      = Enum.Font.GothamBold
+                linkLbl.ZIndex    = 12
+                linkLbl.Parent    = linkInner
+
+                local linkHit = Instance.new("TextButton")
+                linkHit.BackgroundTransparency = 1
+                linkHit.Size   = UDim2.new(1, 0, 1, 0)
+                linkHit.Text   = ""
+                linkHit.ZIndex = 13
+                linkHit.Parent = linkInner
+
+                linkHit.MouseEnter:Connect(function()
+                    Tween(linkInner, {BackgroundColor3=T.CardHover}, 0.12)
+                end)
+                linkHit.MouseLeave:Connect(function()
+                    Tween(linkInner, {BackgroundColor3=T.Card}, 0.12)
+                end)
+                linkHit.MouseButton1Click:Connect(function()
+                    -- Abre o link no navegador padrão do sistema
+                    pcall(function()
+                        setclipboard(ksLink)
+                    end)
+                    -- Tenta abrir diretamente (funciona em alguns executores)
+                    pcall(function()
+                        game:GetService("GuiService"):OpenBrowserWindow(ksLink)
+                    end)
+                    -- Feedback visual
+                    linkLbl.Text = "Link copiado!"
+                    task.delay(2, function()
+                        linkLbl.Text = "Pegar Key"
+                    end)
+                end)
+            end
+
             -- Botão confirmar
-            local btnOuter, btnInner = MakeRoundedFrame(body, T.Accent, 6, nil, 0)
-            btnOuter.Size=UDim2.new(1,0,0,32); btnOuter.LayoutOrder=4
+            local confirmW = ksLink and 0.58 or 1
+            local btnOuter, btnInner = MakeRoundedFrame(btnRow, T.Accent, 6, nil, 0)
+            btnOuter.Size        = UDim2.new(confirmW, ksLink and -4 or 0, 1, 0)
+            btnOuter.LayoutOrder = 2
 
             local btnLbl=Instance.new("TextLabel")
             btnLbl.BackgroundTransparency=1; btnLbl.Size=UDim2.new(1,0,1,0)
@@ -576,7 +638,41 @@ function NexusUI:CreateWindow(config)
                 Tween(btnInner,{BackgroundColor3=T.Accent},0.12)
             end)
 
-            -- Lógica de validação no clique
+            -- Botão "Obter Key" (só aparece se KeyLink foi configurado)
+            if ksLink then
+                local linkOuter, linkInner = MakeRoundedFrame(body, T.Card, 6, T.Border, 1)
+                linkOuter.Size=UDim2.new(1,0,0,32); linkOuter.LayoutOrder=5
+
+                local linkLbl=Instance.new("TextLabel")
+                linkLbl.BackgroundTransparency=1; linkLbl.Size=UDim2.new(1,0,1,0)
+                linkLbl.Text="Obter Key"; linkLbl.TextColor3=T.AccentText
+                linkLbl.TextSize=13; linkLbl.Font=Enum.Font.GothamBold; linkLbl.ZIndex=12
+                linkLbl.Parent=linkInner
+
+                local linkHit=Instance.new("TextButton")
+                linkHit.BackgroundTransparency=1; linkHit.Size=UDim2.new(1,0,1,0)
+                linkHit.Text=""; linkHit.ZIndex=13; linkHit.Parent=linkInner
+
+                linkHit.MouseEnter:Connect(function()
+                    Tween(linkInner,{BackgroundColor3=T.CardHover},0.12)
+                end)
+                linkHit.MouseLeave:Connect(function()
+                    Tween(linkInner,{BackgroundColor3=T.Card},0.12)
+                end)
+
+                linkHit.MouseButton1Click:Connect(function()
+                    -- Copia link pro clipboard (única forma confiável em executores)
+                    pcall(function() setclipboard(ksLink) end)
+                    -- Feedback visual
+                    local prev = linkLbl.Text
+                    linkLbl.Text = "Link copiado!"
+                    linkLbl.TextColor3 = T.Success
+                    task.delay(2, function()
+                        linkLbl.Text = prev
+                        linkLbl.TextColor3 = T.AccentText
+                    end)
+                end)
+            end
             local function tryValidate()
                 local input = keyBox.Text
                 -- Feedback visual: loading
@@ -1833,6 +1929,7 @@ local Win = NexusUI:CreateWindow({
         Title    = "Verificação",
         Subtitle = "Digite sua key para continuar",
         Note     = "Acesse nosso Discord para obter a key.",
+        KeyLink  = "https://discord.gg/meuservidor",  -- botão "Pegar Key" abre/copia este link
         FileName = "MeuScriptKey",
         SaveKey  = true,
         GrabKeyFromSite = false,
@@ -1853,7 +1950,8 @@ local Win = NexusUI:CreateWindow({
         SaveKey  = true,
         GrabKeyFromSite = true,
         -- Cole aqui a URL RAW do seu site/pastebin/github:
-        Key = {"https://pastebin.com/raw/XXXXXXXX"},
+        Key     = {"https://pastebin.com/raw/XXXXXXXX"},
+        KeyLink = "https://discord.gg/seuservidor",  -- botão "Obter Key" (opcional)
     },
 })
 
