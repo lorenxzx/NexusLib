@@ -6,7 +6,7 @@
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║    ╚██████╔╝██║
     ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚═╝
 
-    NexusUI v2.0.0  —  Animação
+    NexusUI v2.0.0  — 123
 ]]
 
 local NexusUI  = {}
@@ -490,20 +490,60 @@ function NexusUI:CreateWindow(config)
 
     -- Ícone ou barra accent
     if winIcon then
-        local iconFrame = Instance.new("Frame")
-        iconFrame.BackgroundColor3 = T.AccentDim
-        iconFrame.Size             = UDim2.new(0, 26, 0, 26)
-        iconFrame.BorderSizePixel  = 0
-        iconFrame.LayoutOrder      = 1
-        iconFrame.Parent           = pillContent
-        do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,6); c.Parent=iconFrame end
+        -- Outer: borda accent (UIStroke separado do clip, padrão MakeRoundedFrame)
+        local iconOuter = Instance.new("Frame")
+        iconOuter.BackgroundTransparency = 1
+        iconOuter.Size                   = UDim2.new(0, 28, 0, 28)
+        iconOuter.BorderSizePixel        = 0
+        iconOuter.LayoutOrder            = 1
+        iconOuter.Parent                 = pillContent
+        do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,7); c.Parent=iconOuter end
+        do
+            local s=Instance.new("UIStroke")
+            s.Color=T.Accent; s.Thickness=1.5
+            s.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+            s.Parent=iconOuter
+        end
 
+        -- Inner: fundo com gradiente + clip
+        local iconInner = Instance.new("Frame")
+        iconInner.BackgroundColor3 = T.AccentDim
+        iconInner.Size             = UDim2.new(1,0,1,0)
+        iconInner.BorderSizePixel  = 0
+        iconInner.ClipsDescendants = true
+        iconInner.Parent           = iconOuter
+        do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,7); c.Parent=iconInner end
+
+        -- Gradiente diagonal (claro → escuro)
+        do
+            local g=Instance.new("UIGradient")
+            g.Rotation=135
+            g.Color=ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.new(
+                    math.min(T.AccentDim.R*1.5,1),
+                    math.min(T.AccentDim.G*1.5,1),
+                    math.min(T.AccentDim.B*1.5,1)
+                )),
+                ColorSequenceKeypoint.new(1, T.AccentDim),
+            })
+            g.Parent=iconInner
+        end
+
+        -- Imagem
         local img = Instance.new("ImageLabel")
         img.BackgroundTransparency = 1
         img.Size      = UDim2.new(1,0,1,0)
         img.Image     = winIcon
         img.ScaleType = Enum.ScaleType.Fit
-        img.Parent    = iconFrame
+        img.Parent    = iconInner
+
+        -- Brilho sutil no topo (efeito de vidro)
+        local shine = Instance.new("Frame")
+        shine.BackgroundColor3       = Color3.fromRGB(255,255,255)
+        shine.BackgroundTransparency = 0.75
+        shine.Size                   = UDim2.new(1,0,0,1)
+        shine.BorderSizePixel        = 0
+        shine.Parent                 = iconInner
     else
         local ab = Instance.new("Frame")
         ab.BackgroundColor3 = T.Accent
@@ -713,7 +753,7 @@ function NexusUI:CreateWindow(config)
     local tabScroll = Instance.new("ScrollingFrame")
     tabScroll.BackgroundTransparency = 1
     tabScroll.Size                   = UDim2.new(1, 0, 1, 0)
-    tabScroll.ScrollBarThickness     = 0
+    tabScroll.ScrollBarThickness     = 0   -- oculta barra nativa (track preto)
     tabScroll.CanvasSize             = UDim2.new(0,0,0,0)
     tabScroll.AutomaticCanvasSize    = Enum.AutomaticSize.Y
     tabScroll.Parent                 = sidebar
@@ -753,6 +793,47 @@ function NexusUI:CreateWindow(config)
         cover.Position         = UDim2.new(0, 0, 0, 0)
         cover.BorderSizePixel  = 0
         cover.Parent           = contentArea
+    end
+
+    -- ── Scrollbar customizada (substitui a nativa que tem track preto) ────
+    -- Track: fundo fino do lado direito do contentArea
+    local sbTrack = Instance.new("Frame")
+    sbTrack.BackgroundColor3 = T.BorderSubtle
+    sbTrack.Size             = UDim2.new(0, 3, 1, -24)
+    sbTrack.Position         = UDim2.new(1, -7, 0, 12)
+    sbTrack.BorderSizePixel  = 0
+    sbTrack.Visible          = false
+    sbTrack.ZIndex           = 6
+    sbTrack.Parent           = contentArea
+    do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,2); c.Parent=sbTrack end
+
+    -- Thumb: indica posição atual do scroll
+    local sbThumb = Instance.new("Frame")
+    sbThumb.BackgroundColor3 = T.Accent
+    sbThumb.Size             = UDim2.new(1, 0, 0, 30)
+    sbThumb.BorderSizePixel  = 0
+    sbThumb.Parent           = sbTrack
+    do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,2); c.Parent=sbThumb end
+
+    -- Função que recalcula posição/tamanho do thumb baseado no scroll ativo
+    local function updateScrollbar(scrollFrame)
+        if not scrollFrame or not scrollFrame.Visible then
+            sbTrack.Visible = false
+            return
+        end
+        local contentH = scrollFrame.AbsoluteCanvasSize.Y
+        local visibleH = scrollFrame.AbsoluteSize.Y
+        if contentH <= visibleH + 2 then
+            sbTrack.Visible = false
+            return
+        end
+        sbTrack.Visible = true
+        local trackH    = sbTrack.AbsoluteSize.Y
+        local thumbH    = math.max((visibleH / contentH) * trackH, 20)
+        local maxScroll = contentH - visibleH
+        local pct       = math.clamp(scrollFrame.CanvasPosition.Y / maxScroll, 0, 1)
+        sbThumb.Size     = UDim2.new(1, 0, 0, thumbH)
+        sbThumb.Position = UDim2.new(0, 0, 0, pct * (trackH - thumbH))
     end
 
     -- ── Objeto Window ────────────────────────────────────
@@ -887,17 +968,29 @@ function NexusUI:CreateWindow(config)
         btnLabel.TextXAlignment = Enum.TextXAlignment.Left
         btnLabel.Parent         = btn
 
-        -- Scroll de conteúdo
+        -- Scroll de conteúdo (scrollbar nativa oculta — usamos a customizada)
         local scroll = Instance.new("ScrollingFrame")
         scroll.BackgroundTransparency = 1
-        scroll.Size                   = UDim2.new(1, 0, 1, 0)
-        scroll.ScrollBarThickness     = 3
-        scroll.ScrollBarImageColor3   = T.Accent
+        scroll.Size                   = UDim2.new(1, -10, 1, 0)  -- 10px para scrollbar
+        scroll.ScrollBarThickness     = 0
         scroll.CanvasSize             = UDim2.new(0,0,0,0)
         scroll.AutomaticCanvasSize    = Enum.AutomaticSize.Y
         scroll.Visible                = isFirst
         scroll.Parent                 = contentArea
-        AddPadding(scroll, 16, 16, 16, 16)
+        AddPadding(scroll, 16, 16, 16, 10)
+
+        -- Conecta eventos deste scroll ao updateScrollbar global
+        local function onScroll()
+            if scroll.Visible then updateScrollbar(scroll) end
+        end
+        scroll:GetPropertyChangedSignal("CanvasPosition"):Connect(onScroll)
+        scroll:GetPropertyChangedSignal("AbsoluteSize"):Connect(onScroll)
+        scroll:GetPropertyChangedSignal("AbsoluteCanvasSize"):Connect(onScroll)
+
+        -- Se for o primeiro tab, inicializa a scrollbar agora
+        if isFirst then
+            task.defer(function() updateScrollbar(scroll) end)
+        end
 
         do
             local sl = Instance.new("UIListLayout")
@@ -954,6 +1047,7 @@ function NexusUI:CreateWindow(config)
             if iconImg then Tween(iconImg, {ImageColor3=T.Text}, 0.15) end
             scroll.Visible  = true
             Win._activeTab  = tab
+            updateScrollbar(scroll)
         end)
 
         btn.MouseEnter:Connect(function()
