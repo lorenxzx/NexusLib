@@ -8,7 +8,8 @@
 
     NexusUI v2.0.0  —  Modern Roblox UI Library
 
-    Fdasasadsadsadsaendants no MESMO frame sempre vaza.
+    FIX DEFINITIVO DOS CANTOS:
+      UIStroke + ClipsDescendants no MESMO frame sempre vaza.
       MakeRoundedFrame() cria 2 layers:
         outer → UICorner + UIStroke, fundo transparente, SEM ClipsDescendants
         inner → UICorner + ClipsDescendants, tem a cor de fundo, SEM UIStroke
@@ -398,6 +399,7 @@ function NexusUI:CreateWindow(config)
     local winSize   = cfg.Size     or UDim2.new(0, 580, 0, 400)
     local winPos    = cfg.Position or UDim2.new(0.5, -290, 0.5, -200)
     local winIcon   = resolveIcon(cfg.Icon)
+    local showSearch = cfg.SearchBox ~= false   -- padrão true, false desativa
     local T         = Themes[themeName] or Themes.Dark
 
     -- Detecta se o SubTitle contém NexusUI.Version (via concatenação)
@@ -808,56 +810,59 @@ function NexusUI:CreateWindow(config)
     end
 
     -- ── Barra de pesquisa (topo da sidebar) ─────────────
-    local searchOuter, searchInner = MakeRoundedFrame(sidebar, T.Card, 6, T.Border, 1)
-    searchOuter.Size     = UDim2.new(1, -16, 0, 28)
-    searchOuter.Position = UDim2.new(0, 8, 0, 8)
-    searchOuter.ZIndex   = 4
+    local searchBox  -- referência usada na lógica de filtro abaixo
 
-    -- Ícone lupa
-    local lupaLbl = Instance.new("TextLabel")
-    lupaLbl.BackgroundTransparency = 1
-    lupaLbl.Size       = UDim2.new(0, 20, 1, 0)
-    lupaLbl.Position   = UDim2.new(0, 6, 0, 0)
-    lupaLbl.Text       = "o/"    -- simula lupa com ASCII
-    lupaLbl.TextColor3 = T.TextDisabled
-    lupaLbl.TextSize   = 10
-    lupaLbl.Font       = Enum.Font.GothamBold
-    lupaLbl.Parent     = searchInner
+    if showSearch then
+        local sOuter, sInner = MakeRoundedFrame(sidebar, T.Card, 6, T.Border, 1)
+        sOuter.Size     = UDim2.new(1, -16, 0, 28)
+        sOuter.Position = UDim2.new(0, 8, 0, 8)
+        sOuter.ZIndex   = 4
 
-    local searchBox = Instance.new("TextBox")
-    searchBox.BackgroundTransparency = 1
-    searchBox.Size             = UDim2.new(1, -26, 1, 0)
-    searchBox.Position         = UDim2.new(0, 24, 0, 0)
-    searchBox.PlaceholderText  = "Pesquisar..."
-    searchBox.PlaceholderColor3 = T.TextDisabled
-    searchBox.Text             = ""
-    searchBox.TextColor3       = T.Text
-    searchBox.TextSize         = 11
-    searchBox.Font             = Enum.Font.Gotham
-    searchBox.TextXAlignment   = Enum.TextXAlignment.Left
-    searchBox.ClearTextOnFocus = false
-    searchBox.Parent           = searchInner
+        local lupaLbl = Instance.new("TextLabel")
+        lupaLbl.BackgroundTransparency = 1
+        lupaLbl.Size       = UDim2.new(0, 20, 1, 0)
+        lupaLbl.Position   = UDim2.new(0, 6, 0, 0)
+        lupaLbl.Text       = "o/"
+        lupaLbl.TextColor3 = T.TextDisabled
+        lupaLbl.TextSize   = 10
+        lupaLbl.Font       = Enum.Font.GothamBold
+        lupaLbl.Parent     = sInner
 
-    -- Foco: destaca borda
-    local searchStroke = searchOuter:FindFirstChildOfClass("UIStroke")
-    searchBox.Focused:Connect(function()
-        if searchStroke then Tween(searchStroke, {Color=T.Accent}, 0.15) end
-        Tween(searchInner, {BackgroundColor3=T.CardHover}, 0.15)
-    end)
-    searchBox.FocusLost:Connect(function()
-        if searchStroke then Tween(searchStroke, {Color=T.Border}, 0.15) end
-        Tween(searchInner, {BackgroundColor3=T.Card}, 0.15)
-    end)
+        searchBox = Instance.new("TextBox")
+        searchBox.BackgroundTransparency = 1
+        searchBox.Size              = UDim2.new(1, -26, 1, 0)
+        searchBox.Position          = UDim2.new(0, 24, 0, 0)
+        searchBox.PlaceholderText   = "Pesquisar..."
+        searchBox.PlaceholderColor3 = T.TextDisabled
+        searchBox.Text              = ""
+        searchBox.TextColor3        = T.Text
+        searchBox.TextSize          = 11
+        searchBox.Font              = Enum.Font.Gotham
+        searchBox.TextXAlignment    = Enum.TextXAlignment.Left
+        searchBox.ClearTextOnFocus  = false
+        searchBox.Parent            = sInner
 
+        local searchStroke = sOuter:FindFirstChildOfClass("UIStroke")
+        searchBox.Focused:Connect(function()
+            if searchStroke then Tween(searchStroke, {Color=T.Accent}, 0.15) end
+            Tween(sInner, {BackgroundColor3=T.CardHover}, 0.15)
+        end)
+        searchBox.FocusLost:Connect(function()
+            if searchStroke then Tween(searchStroke, {Color=T.Border}, 0.15) end
+            Tween(sInner, {BackgroundColor3=T.Card}, 0.15)
+        end)
+    end
+
+    local tabScrollOffset = showSearch and 44 or 0
     local tabScroll = Instance.new("ScrollingFrame")
     tabScroll.BackgroundTransparency = 1
-    tabScroll.Size                   = UDim2.new(1, 0, 1, -44)   -- 44px para a search bar
-    tabScroll.Position               = UDim2.new(0, 0, 0, 44)
+    tabScroll.Size                   = UDim2.new(1, 0, 1, -tabScrollOffset)
+    tabScroll.Position               = UDim2.new(0, 0, 0, tabScrollOffset)
     tabScroll.ScrollBarThickness     = 0
     tabScroll.CanvasSize             = UDim2.new(0,0,0,0)
     tabScroll.AutomaticCanvasSize    = Enum.AutomaticSize.Y
     tabScroll.Parent                 = sidebar
-    AddPadding(tabScroll, 4, 8, 8, 8)
+    AddPadding(tabScroll, showSearch and 4 or 8, 8, 8, 8)
 
     local tabLayout = Instance.new("UIListLayout")
     tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -947,87 +952,62 @@ function NexusUI:CreateWindow(config)
     Win._tagCount      = 0
 
     -- ── Lógica de pesquisa ───────────────────────────────
-    -- Filtra tabs baseado no texto digitado. Checa:
-    --   1. Nome da tab
-    --   2. Labels de todos os elementos dentro dela
-    local noResultsLbl = Instance.new("TextLabel")
-    noResultsLbl.BackgroundTransparency = 1
-    noResultsLbl.Size           = UDim2.new(1, -16, 0, 40)
-    noResultsLbl.Position       = UDim2.new(0, 8, 0, 0)
-    noResultsLbl.Text           = "Sem resultados"
-    noResultsLbl.TextColor3     = T.TextDisabled
-    noResultsLbl.TextSize       = 11
-    noResultsLbl.Font           = Enum.Font.Gotham
-    noResultsLbl.TextXAlignment = Enum.TextXAlignment.Center
-    noResultsLbl.Visible        = false
-    noResultsLbl.Parent         = tabScroll
+    if showSearch and searchBox then
+        local noResultsLbl = Instance.new("TextLabel")
+        noResultsLbl.BackgroundTransparency = 1
+        noResultsLbl.Size           = UDim2.new(1, -16, 0, 40)
+        noResultsLbl.Position       = UDim2.new(0, 8, 0, 0)
+        noResultsLbl.Text           = "Sem resultados"
+        noResultsLbl.TextColor3     = T.TextDisabled
+        noResultsLbl.TextSize       = 11
+        noResultsLbl.Font           = Enum.Font.Gotham
+        noResultsLbl.TextXAlignment = Enum.TextXAlignment.Center
+        noResultsLbl.Visible        = false
+        noResultsLbl.Parent         = tabScroll
 
-    searchBox:GetPropertyChangedSignal("Text"):Connect(function()
-        local query = searchBox.Text:lower():match("^%s*(.-)%s*$")
-        local anyVisible = false
-        local newActive  = nil
+        searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+            local query    = searchBox.Text:lower():match("^%s*(.-)%s*$")
+            local anyVisible = false
+            local newActive  = nil
 
-        for _, t in ipairs(Win._tabs) do
-            local match = false
+            for _, t in ipairs(Win._tabs) do
+                local match = false
 
-            if query == "" then
-                match = true
-            else
-                -- Checa nome da tab
-                if t._label.Text:lower():find(query, 1, true) then
+                if query == "" then
                     match = true
-                end
-                -- Checa labels dos elementos
-                if not match then
-                    for _, lbl in ipairs(t._labels) do
-                        if lbl:find(query, 1, true) then
-                            match = true
-                            break
+                else
+                    if t._label.Text:lower():find(query, 1, true) then
+                        match = true
+                    end
+                    if not match then
+                        for _, lbl in ipairs(t._labels) do
+                            if lbl:find(query, 1, true) then match = true; break end
                         end
                     end
                 end
+
+                t._btn.Visible = match
+                if match then
+                    anyVisible = true
+                    if newActive == nil then newActive = t end
+                end
             end
 
-            -- Mostra ou oculta o botão da tab com animação
-            if match then
-                anyVisible = true
-                t._btn.Visible = true
-                Tween(t._btn, {BackgroundTransparency = Win._activeTab == t and 0 or 1}, 0.15)
-                if newActive == nil then newActive = t end
-            else
-                Tween(t._btn, {BackgroundTransparency = 1}, 0.1)
-                task.delay(0.12, function()
-                    if not (t._label.Text:lower():find(query, 1, true)) then
-                        -- Só oculta se ainda não for match
-                        local stillMatch = false
-                        local q2 = searchBox.Text:lower():match("^%s*(.-)%s*$")
-                        if t._label.Text:lower():find(q2, 1, true) then stillMatch = true end
-                        if not stillMatch then
-                            for _, lbl2 in ipairs(t._labels) do
-                                if lbl2:find(q2, 1, true) then stillMatch = true; break end
-                            end
-                        end
-                        t._btn.Visible = stillMatch
-                    end
-                end)
-            end
-        end
+            noResultsLbl.Visible = not anyVisible
 
-        noResultsLbl.Visible = not anyVisible
-
-        -- Se a tab ativa sumiu, ativa a primeira visível
-        if query ~= "" and newActive and Win._activeTab ~= newActive then
-            if not Win._activeTab._btn.Visible then
+            -- Se a tab ativa ficou oculta, ativa a primeira visível
+            if newActive and not Win._activeTab._btn.Visible then
                 newActive._btn.MouseButton1Click:Fire()
             end
-        end
-        -- Se limpou a pesquisa, garante que a tab ativa ainda está visível
-        if query == "" then
-            for _, t in ipairs(Win._tabs) do
-                t._btn.Visible = true
+
+            -- Ao limpar, garante que todas as tabs voltam
+            if query == "" then
+                for _, t in ipairs(Win._tabs) do
+                    t._btn.Visible = true
+                end
             end
-        end
-    end)
+        end)
+    end
 
     -- Helper local: cria um badge num parent qualquer
     local function makeBadge(parent, text, tagColor, layoutOrder)
