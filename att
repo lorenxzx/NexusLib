@@ -1278,37 +1278,88 @@ function NexusUI:CreateWindow(config)
     displayLbl.LayoutOrder            = 2
     displayLbl.Parent                 = footer
 
-    -- Botão de configurações (engrenagem)
-    local gearBtn = Instance.new("TextButton")
+    -- Botão de configurações (ícone de engrenagem via AssetId)
+    local gearBtn = Instance.new("ImageButton")
     gearBtn.BackgroundTransparency = 1
-    gearBtn.Size                   = UDim2.new(0, 24, 0, 24)
-    gearBtn.Text                   = "o"  -- círculo simples como ícone
-    gearBtn.TextColor3             = T.TextMuted
-    gearBtn.TextSize               = 14
-    gearBtn.Font                   = Enum.Font.GothamBold
+    gearBtn.Size                   = UDim2.new(0, 22, 0, 22)
+    gearBtn.Image                  = "rbxassetid://131611052381403"
+    gearBtn.ImageColor3            = T.TextMuted
+    gearBtn.ScaleType              = Enum.ScaleType.Fit
     gearBtn.LayoutOrder            = 3
     gearBtn.Parent                 = footer
-    gearBtn.MouseEnter:Connect(function() Tween(gearBtn,{TextColor3=T.Text},0.1) end)
-    gearBtn.MouseLeave:Connect(function() Tween(gearBtn,{TextColor3=T.TextMuted},0.1) end)
+    gearBtn.MouseEnter:Connect(function() Tween(gearBtn,{ImageColor3=T.Text},0.1) end)
+    gearBtn.MouseLeave:Connect(function() Tween(gearBtn,{ImageColor3=T.TextMuted},0.1) end)
 
-    -- ── Painel de Configurações ────────────────────────
-    -- Aparece sobre o conteúdo ao clicar na engrenagem
+    -- ── Arquivo de configurações persistente ──────────────
+    local settingsFile = "NexusUI_Settings.json"
+    local HttpService  = game:GetService("HttpService")
+
+    local savedSettings = { theme = themeName, keybind = "RightShift" }
+    pcall(function()
+        if isfile and isfile(settingsFile) then
+            local data = HttpService:JSONDecode(readfile(settingsFile))
+            if data.theme   then savedSettings.theme   = data.theme   end
+            if data.keybind then savedSettings.keybind = data.keybind end
+        end
+    end)
+
+    local function saveSettings()
+        pcall(function()
+            if writefile then
+                writefile(settingsFile, HttpService:JSONEncode({
+                    theme   = themeName,
+                    keybind = tostring(currentKeybind and currentKeybind.Name or "RightShift"),
+                }))
+            end
+        end)
+    end
+
+    -- ── Registro de elementos para mudança de tema ao vivo ──
+    -- Armazena {objeto, propriedade, chave do tema}
+    local themeReg = {}
+    local function TR(obj, prop, key)
+        table.insert(themeReg, {obj=obj, prop=prop, key=key})
+    end
+
+    -- Registra os elementos estruturais principais
+    TR(winInner,     "BackgroundColor3", "WinBg")
+    TR(titleBar,     "BackgroundColor3", "TitleBg")
+    TR(sidebar,      "BackgroundColor3", "SidebarBg")
+    TR(contentArea,  "BackgroundColor3", "ContentBg")
+    TR(settingsInner,"BackgroundColor3", "WinBg")
+
+    local function applyThemeLive(newName)
+        local NT = Themes[newName]
+        if not NT then return end
+        themeName = newName
+        T         = NT
+        -- Tween todos os elementos registrados
+        for _, r in ipairs(themeReg) do
+            pcall(function() Tween(r.obj, {[r.prop] = NT[r.key]}, 0.28) end)
+        end
+    end
+
+    -- Aplica tema salvo se diferente do padrão
+    if savedSettings.theme ~= themeName then
+        applyThemeLive(savedSettings.theme)
+    end
+
+    -- ── Painel de Configurações ────────────────────────────
     local settingsOpen = false
 
     local settingsOuter, settingsInner = MakeRoundedFrame(winInner, T.WinBg, 8, T.Border, 1)
-    settingsOuter.Size     = UDim2.new(0, 220, 0, 0)
-    settingsOuter.Position = UDim2.new(0, 8, 1, -8)
+    settingsOuter.Size        = UDim2.new(0, 220, 0, 0)
+    settingsOuter.Position    = UDim2.new(0, 8, 1, -8)
     settingsOuter.AnchorPoint = Vector2.new(0, 1)
-    settingsOuter.ZIndex   = 20
-    settingsOuter.Visible  = false
-    settingsOuter.ClipsDescendants = false
+    settingsOuter.ZIndex      = 20
+    settingsOuter.Visible     = false
 
     local settingsContent = Instance.new("Frame")
     settingsContent.BackgroundTransparency = 1
-    settingsContent.Size             = UDim2.new(1, 0, 0, 0)
-    settingsContent.AutomaticSize    = Enum.AutomaticSize.Y
-    settingsContent.BorderSizePixel  = 0
-    settingsContent.Parent           = settingsInner
+    settingsContent.Size          = UDim2.new(1, 0, 0, 0)
+    settingsContent.AutomaticSize = Enum.AutomaticSize.Y
+    settingsContent.BorderSizePixel = 0
+    settingsContent.Parent        = settingsInner
     AddPadding(settingsContent, 12, 12, 12, 12)
 
     local settingsLayout = Instance.new("UIListLayout")
@@ -1316,254 +1367,192 @@ function NexusUI:CreateWindow(config)
     settingsLayout.Padding   = UDim.new(0, 10)
     settingsLayout.Parent    = settingsContent
 
-    -- Título do painel
+    -- Título
     do
         local stl = Instance.new("TextLabel")
-        stl.BackgroundTransparency = 1
-        stl.Size           = UDim2.new(1,0,0,16)
-        stl.Text           = "Configurações"
-        stl.TextColor3     = T.Text
-        stl.TextSize       = 13
-        stl.Font           = Enum.Font.GothamBold
-        stl.TextXAlignment = Enum.TextXAlignment.Left
-        stl.LayoutOrder    = 0
-        stl.Parent         = settingsContent
+        stl.BackgroundTransparency=1; stl.Size=UDim2.new(1,0,0,16)
+        stl.Text="Configurações"; stl.TextColor3=T.Text
+        stl.TextSize=13; stl.Font=Enum.Font.GothamBold
+        stl.TextXAlignment=Enum.TextXAlignment.Left
+        stl.LayoutOrder=0; stl.Parent=settingsContent
     end
-
-    -- Divisor
     do
-        local div = Instance.new("Frame")
-        div.BackgroundColor3 = T.Border
-        div.Size             = UDim2.new(1,0,0,1)
-        div.BorderSizePixel  = 0
-        div.LayoutOrder      = 1
-        div.Parent           = settingsContent
+        local div=Instance.new("Frame"); div.BackgroundColor3=T.Border
+        div.Size=UDim2.new(1,0,0,1); div.BorderSizePixel=0
+        div.LayoutOrder=1; div.Parent=settingsContent
     end
 
-    -- Seletor de tema
+    -- Seletor de tema (ao vivo)
     do
-        local themeLbl = Instance.new("TextLabel")
-        themeLbl.BackgroundTransparency = 1
-        themeLbl.Size           = UDim2.new(1,0,0,13)
-        themeLbl.Text           = "Tema"
-        themeLbl.TextColor3     = T.TextMuted
-        themeLbl.TextSize       = 10
-        themeLbl.Font           = Enum.Font.GothamBold
-        themeLbl.TextXAlignment = Enum.TextXAlignment.Left
-        themeLbl.LayoutOrder    = 2
-        themeLbl.Parent         = settingsContent
+        local lbl=Instance.new("TextLabel"); lbl.BackgroundTransparency=1
+        lbl.Size=UDim2.new(1,0,0,13); lbl.Text="Tema"
+        lbl.TextColor3=T.TextMuted; lbl.TextSize=10
+        lbl.Font=Enum.Font.GothamBold; lbl.TextXAlignment=Enum.TextXAlignment.Left
+        lbl.LayoutOrder=2; lbl.Parent=settingsContent
     end
 
-    local themeOptions = {"Dark", "Light", "Acrylic", "Rose"}
+    local themeOptions  = {"Dark","Light","Acrylic","Rose"}
+    local themeBtnInners = {}
+
     local themeRow = Instance.new("Frame")
-    themeRow.BackgroundTransparency = 1
-    themeRow.Size                   = UDim2.new(1, 0, 0, 26)
-    themeRow.LayoutOrder            = 3
-    themeRow.Parent                 = settingsContent
+    themeRow.BackgroundTransparency=1; themeRow.Size=UDim2.new(1,0,0,26)
+    themeRow.LayoutOrder=3; themeRow.Parent=settingsContent
+    do
+        local l=Instance.new("UIListLayout"); l.FillDirection=Enum.FillDirection.Horizontal
+        l.Padding=UDim.new(0,4); l.SortOrder=Enum.SortOrder.LayoutOrder; l.Parent=themeRow
+    end
 
-    local themeRowLayout = Instance.new("UIListLayout")
-    themeRowLayout.FillDirection = Enum.FillDirection.Horizontal
-    themeRowLayout.Padding       = UDim.new(0, 4)
-    themeRowLayout.SortOrder     = Enum.SortOrder.LayoutOrder
-    themeRowLayout.Parent        = themeRow
-
-    local themeW = (1 / #themeOptions)
     for i, tname in ipairs(themeOptions) do
         local isActive = (tname == themeName)
-        local tOuter, tInner = MakeRoundedFrame(themeRow, isActive and T.TabActiveBg or T.Card, 5, isActive and T.Accent or T.CardBorder, 1)
-        tOuter.Size        = UDim2.new(themeW, -4, 1, 0)
-        tOuter.LayoutOrder = i
+        local tOuter, tInner = MakeRoundedFrame(themeRow,
+            isActive and T.TabActiveBg or T.Card, 5,
+            isActive and T.Accent      or T.CardBorder, 1)
+        tOuter.Size=UDim2.new(1/#themeOptions,-4,1,0); tOuter.LayoutOrder=i
+        themeBtnInners[tname] = {outer=tOuter, inner=tInner}
 
-        local tLbl = Instance.new("TextLabel")
-        tLbl.BackgroundTransparency = 1
-        tLbl.Size           = UDim2.new(1,0,1,0)
-        tLbl.Text           = tname
-        tLbl.TextColor3     = isActive and T.AccentText or T.TextMuted
-        tLbl.TextSize       = 9
-        tLbl.Font           = Enum.Font.GothamBold
-        tLbl.Parent         = tInner
+        local tLbl=Instance.new("TextLabel"); tLbl.BackgroundTransparency=1
+        tLbl.Size=UDim2.new(1,0,1,0); tLbl.Text=tname
+        tLbl.TextColor3=isActive and T.AccentText or T.TextMuted
+        tLbl.TextSize=9; tLbl.Font=Enum.Font.GothamBold; tLbl.Parent=tInner
 
-        local tHit = Instance.new("TextButton")
-        tHit.BackgroundTransparency = 1
-        tHit.Size   = UDim2.new(1,0,1,0)
-        tHit.Text   = ""
-        tHit.Parent = tInner
+        local tHit=Instance.new("TextButton"); tHit.BackgroundTransparency=1
+        tHit.Size=UDim2.new(1,0,1,0); tHit.Text=""; tHit.Parent=tInner
 
         tHit.MouseButton1Click:Connect(function()
-            NexusUI:Notify({
-                Title   = "Tema",
-                Message = tname .. " aplicado. Reinicie o script.",
-                Type    = "Info",
-                Duration = 3,
-            })
+            -- Reset visual de todos os botões
+            for _, entry in pairs(themeBtnInners) do
+                Tween(entry.inner, {BackgroundColor3=T.Card}, 0.15)
+                local s = entry.outer:FindFirstChildOfClass("UIStroke")
+                if s then Tween(s, {Color=T.CardBorder}, 0.15) end
+                local lb = entry.inner:FindFirstChildOfClass("TextLabel")
+                if lb then lb.TextColor3=T.TextMuted end
+            end
+            -- Aplica ao vivo
+            applyThemeLive(tname)
+            -- Destaca botão ativo
+            local NT = Themes[tname]
+            if NT then
+                Tween(tInner, {BackgroundColor3=NT.TabActiveBg}, 0.15)
+                local s = tOuter:FindFirstChildOfClass("UIStroke")
+                if s then Tween(s, {Color=NT.Accent}, 0.15) end
+                if tLbl then tLbl.TextColor3=NT.AccentText end
+            end
         end)
     end
 
-    -- Divisor
     do
-        local div = Instance.new("Frame")
-        div.BackgroundColor3 = T.Border
-        div.Size             = UDim2.new(1,0,0,1)
-        div.BorderSizePixel  = 0
-        div.LayoutOrder      = 4
-        div.Parent           = settingsContent
+        local div=Instance.new("Frame"); div.BackgroundColor3=T.Border
+        div.Size=UDim2.new(1,0,0,1); div.BorderSizePixel=0
+        div.LayoutOrder=4; div.Parent=settingsContent
     end
 
-    -- Toggle salvar configurações
+    -- Keybind para ocultar/mostrar a janela (com persistência)
     do
-        local saveLbl = Instance.new("TextLabel")
-        saveLbl.BackgroundTransparency = 1
-        saveLbl.Size           = UDim2.new(1,0,0,13)
-        saveLbl.Text           = "Salvar configurações"
-        saveLbl.TextColor3     = T.TextMuted
-        saveLbl.TextSize       = 10
-        saveLbl.Font           = Enum.Font.GothamBold
-        saveLbl.TextXAlignment = Enum.TextXAlignment.Left
-        saveLbl.LayoutOrder    = 5
-        saveLbl.Parent         = settingsContent
+        local lbl=Instance.new("TextLabel"); lbl.BackgroundTransparency=1
+        lbl.Size=UDim2.new(1,0,0,13); lbl.Text="Tecla para ocultar"
+        lbl.TextColor3=T.TextMuted; lbl.TextSize=10
+        lbl.Font=Enum.Font.GothamBold; lbl.TextXAlignment=Enum.TextXAlignment.Left
+        lbl.LayoutOrder=5; lbl.Parent=settingsContent
     end
 
-    local saveRow = Instance.new("Frame")
-    saveRow.BackgroundTransparency = 1
-    saveRow.Size                   = UDim2.new(1, 0, 0, 20)
-    saveRow.LayoutOrder            = 6
-    saveRow.Parent                 = settingsContent
-
-    local saveEnabled = false
-    local saveTrack = Instance.new("Frame")
-    saveTrack.BackgroundColor3 = saveEnabled and T.ToggleOn or T.ToggleOff
-    saveTrack.Size             = UDim2.new(0, 36, 0, 20)
-    saveTrack.BorderSizePixel  = 0
-    saveTrack.Parent           = saveRow
-    do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,10); c.Parent=saveTrack end
-
-    local saveThumb = Instance.new("Frame")
-    saveThumb.BackgroundColor3 = Color3.fromRGB(255,255,255)
-    saveThumb.Size             = UDim2.new(0,14,0,14)
-    saveThumb.Position         = saveEnabled and UDim2.new(0,19,0.5,-7) or UDim2.new(0,3,0.5,-7)
-    saveThumb.BorderSizePixel  = 0
-    saveThumb.Parent           = saveTrack
-    do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,7); c.Parent=saveThumb end
-
-    local saveHit = Instance.new("TextButton")
-    saveHit.BackgroundTransparency = 1
-    saveHit.Size   = UDim2.new(0,36,1,0)
-    saveHit.Text   = ""
-    saveHit.Parent = saveRow
-    saveHit.MouseButton1Click:Connect(function()
-        saveEnabled = not saveEnabled
-        if saveEnabled then
-            Tween(saveTrack,{BackgroundColor3=T.ToggleOn},0.18)
-            Tween(saveThumb,{Position=UDim2.new(0,19,0.5,-7)},0.18)
-        else
-            Tween(saveTrack,{BackgroundColor3=T.ToggleOff},0.18)
-            Tween(saveThumb,{Position=UDim2.new(0,3,0.5,-7)},0.18)
-        end
-    end)
-
-    -- Divisor
-    do
-        local div = Instance.new("Frame")
-        div.BackgroundColor3 = T.Border
-        div.Size             = UDim2.new(1,0,0,1)
-        div.BorderSizePixel  = 0
-        div.LayoutOrder      = 7
-        div.Parent           = settingsContent
-    end
-
-    -- Keybind para toggle da janela
-    do
-        local kbLbl = Instance.new("TextLabel")
-        kbLbl.BackgroundTransparency = 1
-        kbLbl.Size           = UDim2.new(1,0,0,13)
-        kbLbl.Text           = "Tecla para ocultar"
-        kbLbl.TextColor3     = T.TextMuted
-        kbLbl.TextSize       = 10
-        kbLbl.Font           = Enum.Font.GothamBold
-        kbLbl.TextXAlignment = Enum.TextXAlignment.Left
-        kbLbl.LayoutOrder    = 8
-        kbLbl.Parent         = settingsContent
-    end
-
-    local currentKeybind = cfg.ToggleKey or Enum.KeyCode.RightShift
+    -- Carrega keybind salvo
+    local savedKbName = savedSettings.keybind or "RightShift"
+    local currentKeybind = (Enum.KeyCode[savedKbName] or Enum.KeyCode.RightShift)
     local listeningKey   = false
 
     local kbOuter, kbInner = MakeRoundedFrame(settingsContent, T.Card, 5, T.CardBorder, 1)
-    kbOuter.Size        = UDim2.new(1,0,0,26)
-    kbOuter.LayoutOrder = 9
+    kbOuter.Size=UDim2.new(1,0,0,26); kbOuter.LayoutOrder=6
 
     local kbLblVal = Instance.new("TextLabel")
-    kbLblVal.BackgroundTransparency = 1
-    kbLblVal.Size           = UDim2.new(1,-8,1,0)
-    kbLblVal.Position       = UDim2.new(0,8,0,0)
-    kbLblVal.Text           = tostring(currentKeybind.Name)
-    kbLblVal.TextColor3     = T.AccentText
-    kbLblVal.TextSize       = 11
-    kbLblVal.Font           = Enum.Font.GothamBold
-    kbLblVal.TextXAlignment = Enum.TextXAlignment.Left
-    kbLblVal.Parent         = kbInner
+    kbLblVal.BackgroundTransparency=1; kbLblVal.Size=UDim2.new(1,-8,1,0)
+    kbLblVal.Position=UDim2.new(0,8,0,0); kbLblVal.Text=currentKeybind.Name
+    kbLblVal.TextColor3=T.AccentText; kbLblVal.TextSize=11
+    kbLblVal.Font=Enum.Font.GothamBold; kbLblVal.TextXAlignment=Enum.TextXAlignment.Left
+    kbLblVal.Parent=kbInner
 
-    local kbHit = Instance.new("TextButton")
-    kbHit.BackgroundTransparency = 1
-    kbHit.Size   = UDim2.new(1,0,1,0)
-    kbHit.Text   = ""
-    kbHit.Parent = kbInner
-
-    local kbStroke = kbOuter:FindFirstChildOfClass("UIStroke")
+    local kbHit=Instance.new("TextButton"); kbHit.BackgroundTransparency=1
+    kbHit.Size=UDim2.new(1,0,1,0); kbHit.Text=""; kbHit.Parent=kbInner
+    local kbStroke=kbOuter:FindFirstChildOfClass("UIStroke")
 
     kbHit.MouseButton1Click:Connect(function()
-        listeningKey  = true
-        kbLblVal.Text = "..."
-        kbLblVal.TextColor3 = T.TextMuted
+        listeningKey=true; kbLblVal.Text="..."
+        kbLblVal.TextColor3=T.TextMuted
         if kbStroke then Tween(kbStroke,{Color=T.Accent},0.15) end
     end)
 
     UserInputService.InputBegan:Connect(function(inp, gp)
         if gp then return end
-        if listeningKey and inp.UserInputType == Enum.UserInputType.Keyboard then
-            currentKeybind    = inp.KeyCode
-            kbLblVal.Text     = tostring(inp.KeyCode.Name)
-            kbLblVal.TextColor3 = T.AccentText
-            listeningKey      = false
+        if listeningKey and inp.UserInputType==Enum.UserInputType.Keyboard then
+            currentKeybind=inp.KeyCode
+            kbLblVal.Text=tostring(inp.KeyCode.Name)
+            kbLblVal.TextColor3=T.AccentText
+            listeningKey=false
             if kbStroke then Tween(kbStroke,{Color=T.CardBorder},0.15) end
-        elseif not listeningKey and inp.UserInputType == Enum.UserInputType.Keyboard then
-            if inp.KeyCode == currentKeybind then
-                winOuter.Visible = not winOuter.Visible
+        elseif not listeningKey and inp.UserInputType==Enum.UserInputType.Keyboard then
+            if inp.KeyCode==currentKeybind then
+                winOuter.Visible=not winOuter.Visible
             end
         end
     end)
 
-    -- Sync height de settingsOuter com settingsContent
+    do
+        local div=Instance.new("Frame"); div.BackgroundColor3=T.Border
+        div.Size=UDim2.new(1,0,0,1); div.BorderSizePixel=0
+        div.LayoutOrder=7; div.Parent=settingsContent
+    end
+
+    -- Botão Salvar (salva tema + keybind no arquivo)
+    local saveOuter, saveInner = MakeRoundedFrame(settingsContent, T.Accent, 6, nil, 0)
+    saveOuter.Size=UDim2.new(1,0,0,28); saveOuter.LayoutOrder=8
+
+    local saveLblBtn=Instance.new("TextLabel")
+    saveLblBtn.BackgroundTransparency=1; saveLblBtn.Size=UDim2.new(1,0,1,0)
+    saveLblBtn.Text="Salvar configurações"; saveLblBtn.TextColor3=Color3.fromRGB(255,255,255)
+    saveLblBtn.TextSize=12; saveLblBtn.Font=Enum.Font.GothamBold
+    saveLblBtn.Parent=saveInner
+
+    local saveHit=Instance.new("TextButton"); saveHit.BackgroundTransparency=1
+    saveHit.Size=UDim2.new(1,0,1,0); saveHit.Text=""; saveHit.Parent=saveInner
+    saveHit.MouseEnter:Connect(function() Tween(saveInner,{BackgroundColor3=T.AccentText},0.12) end)
+    saveHit.MouseLeave:Connect(function() Tween(saveInner,{BackgroundColor3=T.Accent},0.12) end)
+    saveHit.MouseButton1Click:Connect(function()
+        saveSettings()
+        saveLblBtn.Text="Salvo!"
+        Tween(saveInner,{BackgroundColor3=T.Success},0.15)
+        task.delay(1.5, function()
+            saveLblBtn.Text="Salvar configurações"
+            Tween(saveInner,{BackgroundColor3=T.Accent},0.2)
+        end)
+    end)
+
+    -- Sync altura do painel
     local function syncSettingsH()
-        local h = settingsContent.AbsoluteSize.Y
-        if h > 0 then settingsOuter.Size = UDim2.new(0, 220, 0, h) end
+        local h=settingsContent.AbsoluteSize.Y
+        if h>0 then settingsOuter.Size=UDim2.new(0,220,0,h) end
     end
     settingsContent:GetPropertyChangedSignal("AbsoluteSize"):Connect(syncSettingsH)
     task.defer(syncSettingsH)
 
-    -- Toggle do painel ao clicar na engrenagem
+    -- Toggle do painel
     gearBtn.MouseButton1Click:Connect(function()
-        settingsOpen = not settingsOpen
-        settingsOuter.Visible = settingsOpen
+        settingsOpen=not settingsOpen
+        settingsOuter.Visible=settingsOpen
         if settingsOpen then
-            settingsOuter.Size = UDim2.new(0, 220, 0, 0)
-            Tween(settingsOuter, {Size=UDim2.new(0, 220, 0, settingsContent.AbsoluteSize.Y)}, 0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+            settingsOuter.Size=UDim2.new(0,220,0,0)
+            Tween(settingsOuter,{Size=UDim2.new(0,220,0,settingsContent.AbsoluteSize.Y)},0.22,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
         end
-        Tween(gearBtn, {TextColor3 = settingsOpen and T.Accent or T.TextMuted}, 0.15)
+        Tween(gearBtn,{ImageColor3=settingsOpen and T.Accent or T.TextMuted},0.15)
     end)
 
     -- Fecha ao clicar fora
     UserInputService.InputBegan:Connect(function(inp)
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 and settingsOpen then
+        if inp.UserInputType==Enum.UserInputType.MouseButton1 and settingsOpen then
             task.defer(function()
-                if not settingsOuter.AbsolutePosition then return end
-                local mx, my = Mouse.X, Mouse.Y
-                local sp = settingsOuter.AbsolutePosition
-                local ss = settingsOuter.AbsoluteSize
-                if mx < sp.X or mx > sp.X+ss.X or my < sp.Y or my > sp.Y+ss.Y then
-                    settingsOpen = false
-                    settingsOuter.Visible = false
-                    Tween(gearBtn, {TextColor3=T.TextMuted}, 0.15)
+                local mx,my=Mouse.X,Mouse.Y
+                local sp=settingsOuter.AbsolutePosition; local ss=settingsOuter.AbsoluteSize
+                if mx<sp.X or mx>sp.X+ss.X or my<sp.Y or my>sp.Y+ss.Y then
+                    settingsOpen=false; settingsOuter.Visible=false
+                    Tween(gearBtn,{ImageColor3=T.TextMuted},0.15)
                 end
             end)
         end
