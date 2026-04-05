@@ -238,26 +238,34 @@ end
 local function applyIcon(imgObj, raw)
     if not raw or raw == "" or raw == 0 then return end
     local s = tostring(raw)
-    -- AssetId numérico ou string com rbxassetid://
+
+    -- AssetId numérico ou string rbxassetid:// — aplica direto
     if s:match("^%d+$") then
-        imgObj.Image = "rbxassetid://" .. s
+        imgObj.Image   = "rbxassetid://" .. s
+        imgObj.Visible = true
         return
     end
     if s:lower():find("^rbxassetid://") then
-        imgObj.Image = s
+        imgObj.Image   = s
+        imgObj.Visible = true
         return
     end
-    -- Tenta Lucide por nome (espera carregar se ainda não carregou)
+
+    -- Nome Lucide — começa invisível e aparece quando carregar
+    imgObj.Visible = false
     local tries = 0
     local function tryApply()
+        -- Para se o elemento foi destruído (ex: notificação sumiu)
+        if not imgObj or not imgObj.Parent then return end
         local asset = getLucideAsset(s)
         if asset then
             imgObj.Image           = "rbxassetid://" .. asset.id
             imgObj.ImageRectSize   = asset.imageRectSize
             imgObj.ImageRectOffset = asset.imageRectOffset
-        elseif tries < 20 then
+            imgObj.Visible         = true
+        elseif tries < 40 then
             tries = tries + 1
-            task.delay(0.3, tryApply)
+            task.delay(0.15, tryApply)
         end
     end
     tryApply()
@@ -3100,6 +3108,6 @@ function NexusUI:CreateWindow(config)
     end -- AddTab
 
     return Win
-end -- Funcionando
+end -- CreateWindow
 
 return NexusUI
