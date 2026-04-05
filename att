@@ -1549,7 +1549,7 @@ function NexusUI:CreateWindow(config)
                 Title    = "Tema alterado",
                 Message  = "\"" .. pendingTheme .. "\" será aplicado na próxima execução.",
                 Type     = "Info",
-                Duration = 7,
+                Duration = 4,
             })
         end
 
@@ -2307,9 +2307,16 @@ function NexusUI:CreateWindow(config)
             cfg = cfg or {}
             local title   = cfg.Title   or ""
             local content = cfg.Content or ""
+            local isCode  = cfg.IsCode  ~= false  -- padrão true
 
-            local outer, inner = MakeRoundedFrame(scroll, T.ContentBg, 6, T.CardBorder, 1)
-            outer.Size = UDim2.new(1, 0, 0, 0)
+            -- Cores do bloco
+            local blockBg     = isCode and T.WinBg     or T.ContentBg
+            local blockBorder = isCode and T.Border     or T.CardBorder
+            local textColor   = isCode and T.AccentText or T.TextMuted
+            local textFont    = isCode and Enum.Font.Code or Enum.Font.Gotham
+
+            local outer, inner = MakeRoundedFrame(scroll, T.Card, 6, T.CardBorder, 1)
+            outer.Size          = UDim2.new(1, 0, 0, 0)
             outer.AutomaticSize = Enum.AutomaticSize.Y
             inner.AutomaticSize = Enum.AutomaticSize.Y
             AddPadding(inner, 10, 10, 12, 12)
@@ -2319,16 +2326,17 @@ function NexusUI:CreateWindow(config)
             lay.Padding   = UDim.new(0, 6)
             lay.Parent    = inner
 
+            -- Linha do título + botão copiar
             if title ~= "" then
                 local tRow = Instance.new("Frame")
                 tRow.BackgroundTransparency = 1
-                tRow.Size        = UDim2.new(1,0,0,16)
+                tRow.Size        = UDim2.new(1, 0, 0, 18)
                 tRow.LayoutOrder = 1
                 tRow.Parent      = inner
 
                 local tLbl = Instance.new("TextLabel")
                 tLbl.BackgroundTransparency = 1
-                tLbl.Size           = UDim2.new(1,-32,1,0)
+                tLbl.Size           = UDim2.new(1, -28, 1, 0)
                 tLbl.Text           = title
                 tLbl.TextColor3     = T.Text
                 tLbl.TextSize       = 12
@@ -2336,42 +2344,51 @@ function NexusUI:CreateWindow(config)
                 tLbl.TextXAlignment = Enum.TextXAlignment.Left
                 tLbl.Parent         = tRow
 
-                -- Botão copiar
-                local copyBtn = Instance.new("TextButton")
+                -- Botão copiar com ícone
+                local copyBtn = Instance.new("ImageButton")
                 copyBtn.BackgroundTransparency = 1
-                copyBtn.Size       = UDim2.new(0, 28, 1, 0)
-                copyBtn.Position   = UDim2.new(1,-28,0,0)
-                copyBtn.Text       = "[c]"
-                copyBtn.TextColor3 = T.TextMuted
-                copyBtn.TextSize   = 10
-                copyBtn.Font       = Enum.Font.GothamBold
+                copyBtn.Size       = UDim2.new(0, 16, 0, 16)
+                copyBtn.Position   = UDim2.new(1, -16, 0.5, -8)
+                copyBtn.Image      = "rbxassetid://98668805515783"
+                copyBtn.ImageColor3 = T.TextMuted
+                copyBtn.ScaleType  = Enum.ScaleType.Fit
                 copyBtn.Parent     = tRow
-                copyBtn.MouseEnter:Connect(function() Tween(copyBtn,{TextColor3=T.AccentText},0.1) end)
-                copyBtn.MouseLeave:Connect(function() Tween(copyBtn,{TextColor3=T.TextMuted},0.1) end)
+
+                copyBtn.MouseEnter:Connect(function() Tween(copyBtn,{ImageColor3=T.AccentText},0.1) end)
+                copyBtn.MouseLeave:Connect(function() Tween(copyBtn,{ImageColor3=T.TextMuted},0.1) end)
                 copyBtn.MouseButton1Click:Connect(function()
                     pcall(function() setclipboard(content) end)
-                    local prev = copyBtn.Text
-                    copyBtn.Text      = "ok!"
-                    copyBtn.TextColor3 = T.Success
+                    -- Animação: encolhe, fica verde, volta
+                    Tween(copyBtn, {ImageColor3=T.Success}, 0.12)
+                    Tween(copyBtn, {Size=UDim2.new(0,12,0,12), Position=UDim2.new(1,-14,0.5,-6)}, 0.1)
+                    task.delay(0.1, function()
+                        Tween(copyBtn, {Size=UDim2.new(0,18,0,18), Position=UDim2.new(1,-18,0.5,-9)}, 0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+                    end)
                     task.delay(1.5, function()
-                        copyBtn.Text      = prev
-                        copyBtn.TextColor3 = T.TextMuted
+                        Tween(copyBtn, {ImageColor3=T.TextMuted, Size=UDim2.new(0,16,0,16), Position=UDim2.new(1,-16,0.5,-8)}, 0.2)
                     end)
                 end)
             end
 
+            -- Bloco de código/texto
+            local codeOuter, codeInner = MakeRoundedFrame(inner, blockBg, 4, blockBorder, 1)
+            codeOuter.Size        = UDim2.new(1, 0, 0, 0)
+            codeOuter.AutomaticSize = Enum.AutomaticSize.Y
+            codeOuter.LayoutOrder = 2
+            codeInner.AutomaticSize = Enum.AutomaticSize.Y
+            AddPadding(codeInner, 8, 8, 10, 10)
+
             local cLbl = Instance.new("TextLabel")
             cLbl.BackgroundTransparency = 1
-            cLbl.Size           = UDim2.new(1,0,0,0)
+            cLbl.Size           = UDim2.new(1, 0, 0, 0)
             cLbl.AutomaticSize  = Enum.AutomaticSize.Y
             cLbl.Text           = content
-            cLbl.TextColor3     = T.TextMuted
+            cLbl.TextColor3     = textColor
             cLbl.TextSize       = 11
-            cLbl.Font           = Enum.Font.Code
+            cLbl.Font           = textFont
             cLbl.TextXAlignment = Enum.TextXAlignment.Left
             cLbl.TextWrapped    = true
-            cLbl.LayoutOrder    = 2
-            cLbl.Parent         = inner
+            cLbl.Parent         = codeInner
 
             table.insert(self._elements, {label=(title..content):lower(), frame=outer})
             return outer
@@ -2715,6 +2732,20 @@ function NexusUI:CreateWindow(config)
             local current = default
             local listening = false
 
+            -- Converte KeyCode.Name para exibição legível
+            local keyNames = {
+                Zero="0", One="1", Two="2", Three="3", Four="4",
+                Five="5", Six="6", Seven="7", Eight="8", Nine="9",
+                LeftShift="L.Shift", RightShift="R.Shift",
+                LeftControl="L.Ctrl", RightControl="R.Ctrl",
+                LeftAlt="L.Alt", RightAlt="R.Alt",
+                Return="Enter", BackSpace="Back",
+                CapsLock="Caps", Space="Space",
+            }
+            local function keyName(kc)
+                return keyNames[kc.Name] or kc.Name
+            end
+
             local outer, inner = MakeRoundedFrame(scroll, T.Card, 6, T.CardBorder, 1)
             outer.Size = UDim2.new(1,0,0,38)
 
@@ -2738,7 +2769,7 @@ function NexusUI:CreateWindow(config)
             local keyLbl = Instance.new("TextLabel")
             keyLbl.BackgroundTransparency = 1
             keyLbl.Size       = UDim2.new(1,0,1,0)
-            keyLbl.Text       = tostring(current.Name)
+            keyLbl.Text       = keyName(current)
             keyLbl.TextColor3 = T.AccentText
             keyLbl.TextSize   = 10
             keyLbl.Font       = Enum.Font.GothamBold
@@ -2751,8 +2782,8 @@ function NexusUI:CreateWindow(config)
             hit.Parent = inner
 
             hit.MouseButton1Click:Connect(function()
-                listening      = true
-                keyLbl.Text    = "..."
+                listening         = true
+                keyLbl.Text       = "..."
                 keyLbl.TextColor3 = T.TextMuted
                 if kbStroke2 then Tween(kbStroke2,{Color=T.Accent},0.15) end
             end)
@@ -2761,7 +2792,7 @@ function NexusUI:CreateWindow(config)
                 if gp or not listening then return end
                 if inp.UserInputType == Enum.UserInputType.Keyboard then
                     current           = inp.KeyCode
-                    keyLbl.Text       = tostring(inp.KeyCode.Name)
+                    keyLbl.Text       = keyName(inp.KeyCode)
                     keyLbl.TextColor3 = T.AccentText
                     listening         = false
                     if kbStroke2 then Tween(kbStroke2,{Color=T.Border},0.15) end
@@ -2769,7 +2800,6 @@ function NexusUI:CreateWindow(config)
                 end
             end)
 
-            -- Ativa callback quando tecla pressionada
             UserInputService.InputBegan:Connect(function(inp, gp)
                 if gp or listening then return end
                 if inp.UserInputType == Enum.UserInputType.Keyboard and inp.KeyCode == current then
@@ -2779,7 +2809,7 @@ function NexusUI:CreateWindow(config)
 
             table.insert(self._elements, {label=lbl:lower(), frame=outer})
             local obj = {}
-            function obj:Set(kc) current=kc; keyLbl.Text=tostring(kc.Name) end
+            function obj:Set(kc) current=kc; keyLbl.Text=keyName(kc) end
             function obj:Get() return current end
             return obj
         end
@@ -2831,15 +2861,23 @@ function NexusUI:CreateWindow(config)
                 cb(col)
             end
 
+            -- Cores de cada canal para o fill
+            local channelColors = {
+                Color3.fromRGB(220, 50,  50 ),   -- R
+                Color3.fromRGB(50,  200, 50 ),   -- G
+                Color3.fromRGB(50,  100, 220),   -- B
+            }
+
             for idx, name in ipairs(sliderNames) do
                 local rowY = 22 + (idx-1)*28
+                local chanColor = channelColors[idx]
 
                 local rowLbl = Instance.new("TextLabel")
                 rowLbl.BackgroundTransparency = 1
                 rowLbl.Size     = UDim2.new(0,12,0,14)
                 rowLbl.Position = UDim2.new(0,0,0,rowY+2)
                 rowLbl.Text     = name
-                rowLbl.TextColor3 = T.TextMuted
+                rowLbl.TextColor3 = chanColor
                 rowLbl.TextSize = 10
                 rowLbl.Font     = Enum.Font.GothamBold
                 rowLbl.Parent   = inner
@@ -2849,7 +2887,7 @@ function NexusUI:CreateWindow(config)
                 valLbl2.Size     = UDim2.new(0,24,0,14)
                 valLbl2.Position = UDim2.new(1,-24,0,rowY+2)
                 valLbl2.Text     = tostring(sliderValues[idx])
-                valLbl2.TextColor3 = T.AccentText
+                valLbl2.TextColor3 = chanColor
                 valLbl2.TextSize = 10
                 valLbl2.Font     = Enum.Font.GothamBold
                 valLbl2.Parent   = inner
@@ -2863,14 +2901,14 @@ function NexusUI:CreateWindow(config)
                 do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,2); c.Parent=trackBg2 end
 
                 local fill2 = Instance.new("Frame")
-                fill2.BackgroundColor3 = T.Accent
+                fill2.BackgroundColor3 = chanColor
                 fill2.Size             = UDim2.new(sliderValues[idx]/255,0,1,0)
                 fill2.BorderSizePixel  = 0
                 fill2.Parent           = trackBg2
                 do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,2); c.Parent=fill2 end
 
                 local handle2 = Instance.new("Frame")
-                handle2.BackgroundColor3 = Color3.fromRGB(255,255,255)
+                handle2.BackgroundColor3 = T.SliderThumb
                 handle2.AnchorPoint      = Vector2.new(0.5,0.5)
                 handle2.Size             = UDim2.new(0,11,0,11)
                 handle2.Position         = UDim2.new(sliderValues[idx]/255,0,0.5,0)
@@ -2921,6 +2959,6 @@ function NexusUI:CreateWindow(config)
     end -- AddTab
 
     return Win
-end -- CreateWindowsaaaaa
+end -- CreateWindow
 
 return NexusUI
