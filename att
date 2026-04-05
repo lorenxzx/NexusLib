@@ -314,7 +314,7 @@ function NexusUI:Notify(config)
     local message  = cfg.Message  or ""
     local duration = cfg.Duration or 4
     local ntype    = cfg.Type     or "Info"
-    local iconId   = cfg.Icon and resolveIcon(cfg.Icon) or nil
+    local iconRaw  = cfg.Icon or nil
     -- Usa o tema do cfg se passado, senão usa o tema ativo da janela
     local T        = Themes[cfg.Theme or NexusUI._activeTheme] or Themes.Dark
 
@@ -372,14 +372,15 @@ function NexusUI:Notify(config)
     titleRow.Parent                 = content
 
     local titleOffX = 0
-    if iconId then
+    if iconRaw then
         local img = Instance.new("ImageLabel")
         img.BackgroundTransparency = 1
         img.Size      = UDim2.new(0, 14, 0, 14)
         img.Position  = UDim2.new(0, 0, 0.5, -7)
-        img.Image     = iconId
+        img.ImageColor3 = T.Text
         img.ScaleType = Enum.ScaleType.Fit
         img.Parent    = titleRow
+        applyIcon(img, iconRaw)
         titleOffX = 20
     end
 
@@ -3099,6 +3100,6 @@ function NexusUI:CreateWindow(config)
     end -- AddTab
 
     return Win
-end -- CreateWindow
+end -- Funcionando
 
 return NexusUI
