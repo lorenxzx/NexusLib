@@ -1364,12 +1364,12 @@ function NexusUI:CreateWindow(config)
     -- Botão de configurações (ícone de engrenagem via AssetId)
     local gearBtn = Instance.new("ImageButton")
     gearBtn.BackgroundTransparency = 1
-    gearBtn.Size                   = UDim2.new(0, 11, 0, 11)
-    gearBtn.Image                  = "rbxassetid://84420944520355"
+    gearBtn.Size                   = UDim2.new(0, 14, 0, 14)
     gearBtn.ImageColor3            = T.TextMuted
     gearBtn.ScaleType              = Enum.ScaleType.Fit
     gearBtn.LayoutOrder            = 3
     gearBtn.Parent                 = footer
+    applyIcon(gearBtn, "settings")
     gearBtn.MouseEnter:Connect(function() Tween(gearBtn,{ImageColor3=T.Text},0.1) end)
     gearBtn.MouseLeave:Connect(function() Tween(gearBtn,{ImageColor3=T.TextMuted},0.1) end)
 
@@ -2397,10 +2397,10 @@ function NexusUI:CreateWindow(config)
                 copyBtn.BackgroundTransparency = 1
                 copyBtn.Size        = UDim2.new(0, 16, 0, 16)
                 copyBtn.Position    = UDim2.new(1, -16, 0.5, -8)
-                copyBtn.Image       = "rbxassetid://98668805515783"
                 copyBtn.ImageColor3 = T.TextMuted
                 copyBtn.ScaleType   = Enum.ScaleType.Fit
                 copyBtn.Parent      = tRow
+                applyIcon(copyBtn, "copy")
                 copyBtn.MouseEnter:Connect(function() Tween(copyBtn,{ImageColor3=T.AccentText},0.1) end)
                 copyBtn.MouseLeave:Connect(function() Tween(copyBtn,{ImageColor3=T.TextMuted},0.1) end)
                 copyBtn.MouseButton1Click:Connect(function()
@@ -2562,8 +2562,8 @@ function NexusUI:CreateWindow(config)
 
             local valueLbl = Instance.new("TextLabel")
             valueLbl.BackgroundTransparency = 1
-            valueLbl.Size           = UDim2.new(0,80,0,38)
-            valueLbl.Position       = UDim2.new(1,-90,0,0)
+            valueLbl.Size           = UDim2.new(0,70,0,38)
+            valueLbl.Position       = UDim2.new(1,-96,0,0)
             valueLbl.Text           = current
             valueLbl.TextColor3     = T.AccentText
             valueLbl.TextSize       = 11
@@ -2572,15 +2572,14 @@ function NexusUI:CreateWindow(config)
             valueLbl.TextTruncate   = Enum.TextTruncate.AtEnd
             valueLbl.Parent         = inner
 
-            local arrowLbl = Instance.new("TextLabel")
-            arrowLbl.BackgroundTransparency = 1
-            arrowLbl.Size       = UDim2.new(0,16,0,38)
-            arrowLbl.Position   = UDim2.new(1,-18,0,0)
-            arrowLbl.Text       = "v"
-            arrowLbl.TextColor3 = T.TextMuted
-            arrowLbl.TextSize   = 10
-            arrowLbl.Font       = Enum.Font.GothamBold
-            arrowLbl.Parent     = inner
+            local arrowImg = Instance.new("ImageLabel")
+            arrowImg.BackgroundTransparency = 1
+            arrowImg.Size       = UDim2.new(0, 12, 0, 12)
+            arrowImg.Position   = UDim2.new(1, -20, 0.5, -6)
+            arrowImg.ImageColor3 = T.TextMuted
+            arrowImg.ScaleType  = Enum.ScaleType.Fit
+            arrowImg.Parent     = inner
+            applyIcon(arrowImg, "chevron-down")
 
             -- Lista de opções (começa oculta)
             local listFrame = Instance.new("Frame")
@@ -2635,7 +2634,6 @@ function NexusUI:CreateWindow(config)
                     if opt ~= current then Tween(itemBtn,{BackgroundTransparency=1},0.1) end
                 end)
                 itemBtn.MouseButton1Click:Connect(function()
-                    -- Reset previous
                     for _, ch in ipairs(listFrame:GetChildren()) do
                         if ch:IsA("TextButton") then
                             Tween(ch,{BackgroundTransparency=1},0.1)
@@ -2643,16 +2641,13 @@ function NexusUI:CreateWindow(config)
                             if cl then cl.TextColor3=T.TextMuted; cl.Font=Enum.Font.Gotham end
                         end
                     end
-                    -- Set new
                     Tween(itemBtn,{BackgroundColor3=T.TabActiveBg,BackgroundTransparency=0},0.1)
                     itemLbl.TextColor3 = T.Text
                     itemLbl.Font       = Enum.Font.GothamBold
                     current            = opt
                     valueLbl.Text      = opt
-
-                    -- Fecha
                     isOpen = false
-                    arrowLbl.Text = "v"
+                    Tween(arrowImg, {Rotation=0}, 0.18)
                     local totalH = #options * itemH + 1
                     Tween(listFrame, {Size=UDim2.new(1,0,0,0)}, 0.18)
                     Tween(outer, {Size=UDim2.new(1,0,0,38)}, 0.18)
@@ -2670,7 +2665,7 @@ function NexusUI:CreateWindow(config)
             hit.MouseLeave:Connect(function() Tween(inner,{BackgroundColor3=T.Card},0.1) end)
             hit.MouseButton1Click:Connect(function()
                 isOpen = not isOpen
-                arrowLbl.Text = isOpen and "^" or "v"
+                Tween(arrowImg, {Rotation = isOpen and 180 or 0}, 0.2)
                 local totalH = #options * itemH + 1
                 if isOpen then
                     Tween(listFrame, {Size=UDim2.new(1,0,0,totalH)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
@@ -2729,8 +2724,8 @@ function NexusUI:CreateWindow(config)
 
             local valueLbl = Instance.new("TextLabel")
             valueLbl.BackgroundTransparency = 1
-            valueLbl.Size           = UDim2.new(0,80,0,38)
-            valueLbl.Position       = UDim2.new(1,-90,0,0)
+            valueLbl.Size           = UDim2.new(0,70,0,38)
+            valueLbl.Position       = UDim2.new(1,-96,0,0)
             valueLbl.Text           = getSelectedText()
             valueLbl.TextColor3     = T.AccentText
             valueLbl.TextSize       = 11
@@ -2739,15 +2734,14 @@ function NexusUI:CreateWindow(config)
             valueLbl.TextTruncate   = Enum.TextTruncate.AtEnd
             valueLbl.Parent         = inner
 
-            local arrowLbl = Instance.new("TextLabel")
-            arrowLbl.BackgroundTransparency = 1
-            arrowLbl.Size       = UDim2.new(0,16,0,38)
-            arrowLbl.Position   = UDim2.new(1,-18,0,0)
-            arrowLbl.Text       = "v"
-            arrowLbl.TextColor3 = T.TextMuted
-            arrowLbl.TextSize   = 10
-            arrowLbl.Font       = Enum.Font.GothamBold
-            arrowLbl.Parent     = inner
+            local arrowImg2 = Instance.new("ImageLabel")
+            arrowImg2.BackgroundTransparency = 1
+            arrowImg2.Size       = UDim2.new(0, 12, 0, 12)
+            arrowImg2.Position   = UDim2.new(1, -20, 0.5, -6)
+            arrowImg2.ImageColor3 = T.TextMuted
+            arrowImg2.ScaleType  = Enum.ScaleType.Fit
+            arrowImg2.Parent     = inner
+            applyIcon(arrowImg2, "chevron-down")
 
             local listFrame = Instance.new("Frame")
             listFrame.BackgroundTransparency = 1
@@ -2832,7 +2826,7 @@ function NexusUI:CreateWindow(config)
             hit.MouseLeave:Connect(function() Tween(inner,{BackgroundColor3=T.Card},0.1) end)
             hit.MouseButton1Click:Connect(function()
                 isOpen = not isOpen
-                arrowLbl.Text = isOpen and "^" or "v"
+                Tween(arrowImg2, {Rotation = isOpen and 180 or 0}, 0.2)
                 local totalH = #options * itemH + 1
                 if isOpen then
                     Tween(listFrame, {Size=UDim2.new(1,0,0,totalH)}, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
@@ -3097,6 +3091,6 @@ function NexusUI:CreateWindow(config)
     end -- AddTab
 
     return Win
-end -- CreateWindowda
+end -- CreateWindow
 
 return NexusUI
