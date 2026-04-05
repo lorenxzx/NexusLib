@@ -1,28 +1,7 @@
---[[
-    ███╗   ██╗███████╗██╗  ██╗██╗   ██╗███████╗    ██╗   ██╗██╗
-    ████╗  ██║██╔════╝╚██╗██╔╝██║   ██║██╔════╝    ██║   ██║██║
-    ██╔██╗ ██║█████╗   ╚███╔╝ ██║   ██║███████╗    ██║   ██║██║
-    ██║╚██╗██║██╔══╝   ██╔██╗ ██║   ██║╚════██║    ██║   ██║██║
-    ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║    ╚██████╔╝██║
-    ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚═╝
-
-    NexusUI v2.0.0  —  aaaaaaaaaaaa
-
-    FIX DEFINITIVO DOS CANTOS:
-      UIStroke + ClipsDescendants no MESMO frame sempre vaza.
-      MakeRoundedFrame() cria 2 layers:
-        outer → UICorner + UIStroke, fundo transparente, SEM ClipsDescendants
-        inner → UICorner + ClipsDescendants, tem a cor de fundo, SEM UIStroke
-      Todo elemento bordado usa esse padrão — janela, notificações, cards, inputs.
-]]
-
 local NexusUI  = {}
 NexusUI.__index = NexusUI
-NexusUI.Version = "v2.0.0"  -- Atualize aqui para mudar em toda a lib
+NexusUI.Version = "v1.0.0"  -- Atualize aqui para mudar em toda a lib
 
--- ═══════════════════════════════════════════════════
---  SERVIÇOS
--- ═══════════════════════════════════════════════════
 local Players          = game:GetService("Players")
 local TweenService     = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -31,12 +10,8 @@ local CoreGui          = game:GetService("CoreGui")
 local LP               = Players.LocalPlayer
 local Mouse            = LP:GetMouse()
 
--- ═══════════════════════════════════════════════════
---  TEMAS
--- ═══════════════════════════════════════════════════
 local Themes = {
 
-    -- ── Dark: neutro, sem detalhes roxo ─────────────
     Dark = {
         WinBg         = Color3.fromRGB(22,  22,  24 ),
         TitleBg       = Color3.fromRGB(28,  28,  30 ),
@@ -65,7 +40,6 @@ local Themes = {
         TabHoverBg    = Color3.fromRGB(34,  34,  38 ),
     },
 
-    -- ── Light: branco limpo ──────────────────────────
     Light = {
         WinBg         = Color3.fromRGB(250, 250, 252),
         TitleBg       = Color3.fromRGB(244, 244, 248),
@@ -94,7 +68,6 @@ local Themes = {
         TabHoverBg    = Color3.fromRGB(234, 234, 244),
     },
 
-    -- ── Acrylic: vidro fosco, leve e translúcido ─────
     Acrylic = {
         WinBg         = Color3.fromRGB(52,  56,  80 ),
         TitleBg       = Color3.fromRGB(60,  64,  92 ),
@@ -123,7 +96,6 @@ local Themes = {
         TabHoverBg    = Color3.fromRGB(68,  74,  106),
     },
 
-    -- ── Rose: escuro quente, accent rosa ─────────────
     Rose = {
         WinBg         = Color3.fromRGB(22,  16,  20 ),
         TitleBg       = Color3.fromRGB(28,  20,  26 ),
@@ -153,23 +125,12 @@ local Themes = {
     },
 }
 
--- ═══════════════════════════════════════════════════
---  HELPERS
--- ═══════════════════════════════════════════════════
 local function Tween(obj, props, t, style, dir)
     TweenService:Create(obj,
         TweenInfo.new(t or 0.18, style or Enum.EasingStyle.Quart,
             dir or Enum.EasingDirection.Out), props):Play()
 end
 
---[[
-    MakeRoundedFrame — THE corner fix.
-    Retorna (outer, inner).
-    • outer: posicione/dimensione este; NÃO adicione filhos aqui.
-    • inner: coloque todos os filhos aqui.
-    Por que funciona: UIStroke fica no outer (sem clip), UICorner+ClipsDescendants
-    ficam no inner (sem stroke). Nunca há sangramento nos cantos.
-]]
 local function MakeRoundedFrame(parent, bgColor, radius, borderColor, borderThick)
     radius      = radius      or 8
     borderThick = borderThick or 1
@@ -253,11 +214,6 @@ local function resolveIcon(raw)
     return s
 end
 
--- ═══════════════════════════════════════════════════
---  SCREENGUI
--- ═══════════════════════════════════════════════════
-
--- Destrói instância anterior se o script for executado duas vezes
 local function destroyExisting()
     pcall(function()
         local existing = CoreGui:FindFirstChild("NexusUI")
@@ -279,7 +235,6 @@ ScreenGui.IgnoreGuiInset = true
 local ok = pcall(function() ScreenGui.Parent = CoreGui end)
 if not ok then ScreenGui.Parent = LP:WaitForChild("PlayerGui") end
 
--- Container de notificações (canto inferior direito)
 local NotifContainer = Instance.new("Frame")
 NotifContainer.BackgroundTransparency = 1
 NotifContainer.AnchorPoint            = Vector2.new(1, 1)
@@ -293,9 +248,6 @@ notifLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 notifLayout.Padding           = UDim.new(0, 8)
 notifLayout.Parent            = NotifContainer
 
--- ═══════════════════════════════════════════════════
---  NOTIFICAÇÕES
--- ═══════════════════════════════════════════════════
 function NexusUI:Notify(config)
     local cfg      = config or {}
     local title    = cfg.Title    or "Notificação"
@@ -402,11 +354,6 @@ function NexusUI:Notify(config)
     return notifOuter
 end
 
--- ═══════════════════════════════════════════════════
---  CRIAR JANELA
--- ═══════════════════════════════════════════════════
---  KEY SYSTEM
--- ═══════════════════════════════════════════════════
 function NexusUI:CreateWindow(config)
     local cfg        = config or {}
     local keyEnabled = cfg.KeySystem == true
@@ -436,7 +383,6 @@ function NexusUI:CreateWindow(config)
                       or raw:match("discord%.com/invite/([%w%-]+)")
 
             if code then
-                -- É um convite do Discord
                 ksDiscord = code:sub(1, 32)
                 ksLink    = "https://discord.gg/" .. ksDiscord
             elseif not raw:match("^https?://") and not raw:match("%.") then
@@ -515,14 +461,12 @@ function NexusUI:CreateWindow(config)
         end
 
         if not validated then
-            -- Monta a tela de key
             local keyOuter, keyInner = MakeRoundedFrame(ScreenGui, T.WinBg, 8, T.Border, 1)
             keyOuter.Name     = "NexusKeyScreen"
             keyOuter.Size     = UDim2.new(0, 400, 0, ksLink and 282 or 240)
             keyOuter.Position = UDim2.new(0.5, -200, 0.5, ksLink and -141 or -120)
             keyOuter.ZIndex   = 10
 
-            -- Faixa de título
             local keyTitleBar = Instance.new("Frame")
             keyTitleBar.BackgroundColor3 = T.TitleBg
             keyTitleBar.Size             = UDim2.new(1, 0, 0, 44)
@@ -571,7 +515,6 @@ function NexusUI:CreateWindow(config)
                 ScreenGui:Destroy()
             end)
 
-            -- Pill accent
             do
                 local pill=Instance.new("Frame")
                 pill.BackgroundColor3=T.Accent; pill.Size=UDim2.new(0,3,0,20)
@@ -580,7 +523,6 @@ function NexusUI:CreateWindow(config)
                 local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,3); c.Parent=pill
             end
 
-            -- Título e subtítulo
             do
                 local tl=Instance.new("TextLabel")
                 tl.BackgroundTransparency=1; tl.Size=UDim2.new(1,-20,0,16)
@@ -596,7 +538,6 @@ function NexusUI:CreateWindow(config)
                 sl.TextXAlignment=Enum.TextXAlignment.Left; sl.ZIndex=11; sl.Parent=keyTitleBar
             end
 
-            -- Corpo
             local body = Instance.new("Frame")
             body.BackgroundTransparency=1; body.Size=UDim2.new(1,0,1,-44)
             body.Position=UDim2.new(0,0,0,44); body.ZIndex=10; body.Parent=keyInner
@@ -606,7 +547,6 @@ function NexusUI:CreateWindow(config)
             bodyLayout.SortOrder=Enum.SortOrder.LayoutOrder
             bodyLayout.Padding=UDim.new(0,10); bodyLayout.Parent=body
 
-            -- Nota
             local noteLbl=Instance.new("TextLabel")
             noteLbl.BackgroundTransparency=1; noteLbl.Size=UDim2.new(1,0,0,0)
             noteLbl.AutomaticSize=Enum.AutomaticSize.Y
@@ -616,7 +556,6 @@ function NexusUI:CreateWindow(config)
             noteLbl.TextWrapped=true; noteLbl.LayoutOrder=1; noteLbl.ZIndex=11
             noteLbl.Parent=body
 
-            -- Input da key
             local inputOuter, inputInner = MakeRoundedFrame(body, T.Card, 6, T.Border, 1)
             inputOuter.Size=UDim2.new(1,0,0,32); inputOuter.LayoutOrder=2
 
@@ -638,7 +577,6 @@ function NexusUI:CreateWindow(config)
                 if inputStroke then Tween(inputStroke,{Color=T.Border},0.15) end
             end)
 
-            -- Mensagem de erro
             local errLbl=Instance.new("TextLabel")
             errLbl.BackgroundTransparency=1; errLbl.Size=UDim2.new(1,0,0,14)
             errLbl.Text=""; errLbl.TextColor3=T.Error; errLbl.TextSize=11
@@ -732,7 +670,6 @@ function NexusUI:CreateWindow(config)
                 task.spawn(function()
                     local ok = validateKey(input)
                     if ok then
-                        -- Salva key se configurado
                         if ksSave then
                             pcall(function()
                                 if writefile then
@@ -756,7 +693,6 @@ function NexusUI:CreateWindow(config)
                         Tween(btnInner, {BackgroundColor3=T.Error}, 0.1)
                         task.wait(0.15)
                         Tween(btnInner, {BackgroundColor3=T.Accent}, 0.2)
-                        -- Mini shake no input
                         local origPos = inputOuter.Position
                         for i = 1, 3 do
                             Tween(inputOuter, {Position=UDim2.new(origPos.X.Scale, origPos.X.Offset+5, origPos.Y.Scale, origPos.Y.Offset)}, 0.05)
@@ -770,7 +706,6 @@ function NexusUI:CreateWindow(config)
             end
 
             btnHit.MouseButton1Click:Connect(tryValidate)
-            -- Enter também confirma
             keyBox.FocusLost:Connect(function(enter)
                 if enter then tryValidate() end
             end)
@@ -780,7 +715,6 @@ function NexusUI:CreateWindow(config)
         end
     end
 
-    -- ── A partir daqui: lógica original do CreateWindow ──
     local title     = cfg.Title    or "NexusUI"
     local subtitle  = cfg.SubTitle or ""
     local themeName = cfg.Theme    or "Dark"
@@ -803,13 +737,11 @@ function NexusUI:CreateWindow(config)
         end
     end
 
-    -- ── Janela: outer (stroke) / inner (clip) ──────────
     local winOuter, winInner = MakeRoundedFrame(ScreenGui, T.WinBg, 8, T.Border, 1)
     winOuter.Name     = "NexusWindow"
     winOuter.Size     = winSize
     winOuter.Position = winPos
 
-    -- ── TitleBar ────────────────────────────────────────
     local titleBar = Instance.new("Frame")
     titleBar.BackgroundColor3 = T.TitleBg
     titleBar.Size             = UDim2.new(1, 0, 0, 48)
@@ -838,7 +770,6 @@ function NexusUI:CreateWindow(config)
         d.Parent           = titleBar
     end
 
-    -- Pill accent esquerdo
     do
         local pill = Instance.new("Frame")
         pill.BackgroundColor3 = T.Accent
@@ -921,7 +852,6 @@ function NexusUI:CreateWindow(config)
         winOuter:Destroy()
     end)
 
-    -- ── Pill de minimizado ──────────────────────────────
     -- AutomaticSize.X: cresce automaticamente com as tags
     local pillOuter, pillInner = MakeRoundedFrame(ScreenGui, T.TitleBg, 8, T.Border, 1)
     pillOuter.Size          = UDim2.new(0, 0, 0, 38)
@@ -946,7 +876,6 @@ function NexusUI:CreateWindow(config)
         l.Parent            = pillContent
     end
 
-    -- Ícone ou barra accent
     if winIcon then
         -- Outer: borda accent (UIStroke separado do clip, padrão MakeRoundedFrame)
         local iconOuter = Instance.new("Frame")
@@ -1001,7 +930,6 @@ function NexusUI:CreateWindow(config)
         do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,2); c.Parent=ab end
     end
 
-    -- Título
     do
         local pt = Instance.new("TextLabel")
         pt.BackgroundTransparency = 1
@@ -1154,7 +1082,6 @@ function NexusUI:CreateWindow(config)
 
     MakeDraggable(winOuter, titleBar)
 
-    -- ── Sidebar ─────────────────────────────────────────
     local sidebar = Instance.new("Frame")
     sidebar.BackgroundColor3 = T.SidebarBg
     sidebar.Size             = UDim2.new(0, 150, 1, -48)
@@ -1197,7 +1124,6 @@ function NexusUI:CreateWindow(config)
         d.Parent           = sidebar
     end
 
-    -- ── Barra de pesquisa (topo da sidebar) ─────────────
     local searchBox  -- referência usada na lógica de filtro abaixo
 
     if showSearch then
@@ -1247,7 +1173,6 @@ function NexusUI:CreateWindow(config)
     tabLayout.Padding   = UDim.new(0, 3)
     tabLayout.Parent    = tabScroll
 
-    -- ── Content Area ────────────────────────────────────
     local contentArea = Instance.new("Frame")
     contentArea.BackgroundColor3 = T.ContentBg
     contentArea.Size             = UDim2.new(1, -150, 1, -48)
@@ -1278,7 +1203,6 @@ function NexusUI:CreateWindow(config)
         cover.Parent           = contentArea
     end
 
-    -- ── Scrollbar customizada (substitui a nativa que tem track preto) ────
     -- Track: fundo fino do lado direito do contentArea
     local sbTrack = Instance.new("Frame")
     sbTrack.BackgroundColor3 = T.BorderSubtle
@@ -1319,7 +1243,6 @@ function NexusUI:CreateWindow(config)
         sbThumb.Position = UDim2.new(0, 0, 0, pct * (trackH - thumbH))
     end
 
-    -- ── Objeto Window ────────────────────────────────────
     local Win          = {}
     Win._theme         = T
     Win._tabs          = {}
@@ -1329,7 +1252,6 @@ function NexusUI:CreateWindow(config)
     Win._pillTagRow    = pillTagRow
     Win._tagCount      = 0
 
-    -- ── Lógica de pesquisa ───────────────────────────────
     if showSearch and searchBox then
         local noResultsLbl = Instance.new("TextLabel")
         noResultsLbl.BackgroundTransparency = 1
@@ -1360,7 +1282,6 @@ function NexusUI:CreateWindow(config)
                     -- Mostra/oculta elementos individuais
                     local tabHasMatch = false
 
-                    -- Checa também o nome da tab
                     if t._label.Text:lower():find(query, 1, true) then
                         tabHasMatch = true
                         -- Se a tab inteira bate, mostra todos os elementos
@@ -1452,7 +1373,6 @@ function NexusUI:CreateWindow(config)
         return outer
     end
 
-    -- ── ADD TAG ──────────────────────────────────────────
     -- Cria um badge na titlebar E no pill.
     -- Uso:
     --   Win:AddTag("beta")                              → cor accent padrão
@@ -1464,7 +1384,6 @@ function NexusUI:CreateWindow(config)
         -- Badge na titlebar (subRow)
         makeBadge(self._subRow, text, tagColor, self._tagCount)
 
-        -- Badge no pill
         makeBadge(self._pillTagRow, text, tagColor, self._tagCount)
     end
 
@@ -1473,9 +1392,6 @@ function NexusUI:CreateWindow(config)
         Win:AddTag(NexusUI.Version)
     end
 
-    -- ════════════════════════════════════════
-    --  ADD TAB
-    -- ════════════════════════════════════════
     function Win:AddTab(label, icon)
         local tab     = {}
         local iconId  = resolveIcon(icon)
@@ -1491,7 +1407,6 @@ function NexusUI:CreateWindow(config)
         btn.Parent                 = tabScroll
         do local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,6); c.Parent=btn end
 
-        -- Indicador
         local indicator = Instance.new("Frame")
         indicator.BackgroundColor3       = T.Accent
         indicator.Size                   = UDim2.new(0, 3, 0, 16)
@@ -1612,7 +1527,6 @@ function NexusUI:CreateWindow(config)
 
         tab._activate = activateTab   -- expõe para a pesquisa
 
-        -- Troca de tab por clique
         btn.MouseButton1Click:Connect(activateTab)
 
         btn.MouseEnter:Connect(function()
@@ -1627,9 +1541,6 @@ function NexusUI:CreateWindow(config)
         if isFirst then Win._activeTab = tab end
         table.insert(self._tabs, tab)
 
-        -- ────────────────────────────────────────
-        --  SECTION
-        -- ────────────────────────────────────────
         function tab:AddSection(sLabel)
             table.insert(self._elements, {label=sLabel:lower(), frame=nil}) -- sections não têm frame próprio visível
             local sf = Instance.new("Frame")
@@ -1658,9 +1569,6 @@ function NexusUI:CreateWindow(config)
             end
         end
 
-        -- ────────────────────────────────────────
-        --  BUTTON
-        -- ────────────────────────────────────────
         function tab:AddButton(cfg)
             cfg = cfg or {}
             local lbl = cfg.Label    or "Botão"
@@ -1707,9 +1615,6 @@ function NexusUI:CreateWindow(config)
             return outer
         end
 
-        -- ────────────────────────────────────────
-        --  TOGGLE
-        -- ────────────────────────────────────────
         function tab:AddToggle(cfg)
             cfg = cfg or {}
             local lbl     = cfg.Label    or "Toggle"
@@ -1776,9 +1681,6 @@ function NexusUI:CreateWindow(config)
             return obj
         end
 
-        -- ────────────────────────────────────────
-        --  SLIDER
-        -- ────────────────────────────────────────
         function tab:AddSlider(cfg)
             cfg = cfg or {}
             local lbl      = cfg.Label    or "Slider"
@@ -1880,9 +1782,6 @@ function NexusUI:CreateWindow(config)
             return obj
         end
 
-        -- ────────────────────────────────────────
-        --  INPUT
-        -- ────────────────────────────────────────
         function tab:AddInput(cfg)
             cfg = cfg or {}
             local lbl         = cfg.Label       or "Input"
@@ -1948,118 +1847,4 @@ function NexusUI:CreateWindow(config)
     return Win
 end -- CreateWindow
 
--- ═══════════════════════════════════════════════════
 return NexusUI
--- ═══════════════════════════════════════════════════
-
-
---[[
-═══════════════════════════════════════════════════════
-  EXEMPLO COMPLETO — NexusUI v2.0
-═══════════════════════════════════════════════════════
-
-local NexusUI = loadstring(game:HttpGet("SUA_URL"))()
-
--- ── Exemplo SEM key system ───────────────────────────
-local Win = NexusUI:CreateWindow({
-    Title      = "Meu Script",
-    SubTitle   = "by você " .. NexusUI.Version,
-    Icon       = "rbxassetid://...",
-    Theme      = "Dark",
-    SearchBox  = true,
-    KeySystem  = false,
-})
-
--- ── Exemplo COM key system (strings diretas) ─────────
-local Win = NexusUI:CreateWindow({
-    Title     = "Meu Script",
-    SubTitle  = "by você " .. NexusUI.Version,
-    Theme     = "Dark",
-    KeySystem = true,
-    KeySettings = {
-        Title    = "Verificação",
-        Subtitle = "Digite sua key para continuar",
-        Note     = "Acesse nosso Discord para obter a key.",
-        KeyLink  = "https://discord.gg/meuservidor",  -- botão "Pegar Key" abre/copia este link
-        FileName = "MeuScriptKey",
-        SaveKey  = true,
-        GrabKeyFromSite = false,
-        Key = {"minhakey123", "keyalternativa"},
-    },
-})
-
--- ── Exemplo COM key vindo de site (Pastebin/GitHub) ──
-local Win = NexusUI:CreateWindow({
-    Title     = "Meu Script",
-    Theme     = "Dark",
-    KeySystem = true,
-    KeySettings = {
-        Title    = "Verificação",
-        Subtitle = "Key System",
-        Note     = "Acesse nosso Discord para obter a key.",
-        FileName = "MeuScriptKey",
-        SaveKey  = true,
-        GrabKeyFromSite = true,
-        -- Cole aqui a URL RAW do seu site/pastebin/github:
-        Key     = {"https://pastebin.com/raw/XXXXXXXX"},
-        KeyLink = "https://discord.gg/seuservidor",  -- botão "Obter Key" (opcional)
-    },
-})
-
-Win:AddTag("beta")
-local Tab = Win:AddTab("Geral", "rbxassetid://3926305904")
-Tab:AddSection("Movimentação")
-Tab:AddButton({ Label = "TP Spawn", Callback = function() end })
-
-NexusUI:Notify({
-    Title   = "NexusUI " .. NexusUI.Version,
-    Message = "Script ativo.",
-    Type    = "Success",
-    Duration = 4,
-})
-
-═══════════════════════════════════════════════════════
-  GUIA: COMO USAR KEY VIA SITE
-═══════════════════════════════════════════════════════
-
-OPÇÃO 1 — PASTEBIN (mais fácil):
-  1. Acesse https://pastebin.com e crie uma conta
-  2. Clique em "New Paste"
-  3. No campo de texto, escreva APENAS a key, ex:
-         minhakey2024
-  4. Em "Paste Expiration" escolha "Never"
-  5. Clique em "Create New Paste"
-  6. Na página do paste, clique em "Raw" (botão no topo)
-  7. Copie a URL — ela será algo como:
-         https://pastebin.com/raw/AbCdEfGh
-  8. Cole essa URL no campo Key:
-         Key = {"https://pastebin.com/raw/AbCdEfGh"}
-  9. Ative GrabKeyFromSite = true
-  10. Para mudar a key: edite o paste no Pastebin.
-      Usuários com a key antiga não conseguirão mais entrar.
-
-OPÇÃO 2 — GITHUB GIST (mais profissional):
-  1. Acesse https://gist.github.com (precisa de conta GitHub)
-  2. Crie um novo gist com um arquivo, ex: "key.txt"
-  3. No conteúdo escreva APENAS a key
-  4. Clique em "Create secret gist"
-  5. Clique em "Raw" para ver a URL pura
-  6. Use essa URL no campo Key
-
-DICA — MÚLTIPLAS KEYS VIA SITE:
-  Você pode colocar várias URLs, cada uma com uma key diferente.
-  Útil para dar keys individuais para usuários:
-    Key = {
-        "https://pastebin.com/raw/key_usuario1",
-        "https://pastebin.com/raw/key_usuario2",
-    }
-
-DICA — SaveKey:
-  Com SaveKey = true, a key válida fica salva no PC do usuário
-  em um arquivo .txt. Na próxima vez que ele abrir o script,
-  a key é lida e validada automaticamente — sem precisar digitar.
-  Se você mudar a key no site, o arquivo salvo fica inválido
-  e o usuário terá que digitar a nova key.
-
-═══════════════════════════════════════════════════════
---]]
