@@ -1521,6 +1521,9 @@ function NexusUI:CreateWindow(config)
     saveHit.Size=UDim2.new(1,0,1,0); saveHit.Text=""; saveHit.Parent=saveInner
     saveHit.MouseEnter:Connect(function() Tween(saveInner,{BackgroundColor3=T.AccentText},0.12) end)
     saveHit.MouseLeave:Connect(function() Tween(saveInner,{BackgroundColor3=T.Accent},0.12) end)
+    local originalTheme   = savedSettings.theme
+    local originalKeybind = savedSettings.keybind
+
     saveHit.MouseButton1Click:Connect(function()
         -- Salva no arquivo
         pcall(function()
@@ -1540,8 +1543,8 @@ function NexusUI:CreateWindow(config)
             Tween(saveInner, {BackgroundColor3=T.Accent}, 0.2)
         end)
 
-        -- Notificações individuais por mudança
-        if pendingTheme ~= themeName then
+        -- Notificações individuais — só quando realmente mudou
+        if pendingTheme ~= originalTheme then
             NexusUI:Notify({
                 Title    = "Tema alterado",
                 Message  = "\"" .. pendingTheme .. "\" será aplicado na próxima execução.",
@@ -1550,7 +1553,7 @@ function NexusUI:CreateWindow(config)
             })
         end
 
-        if currentKeybind ~= (Enum.KeyCode[savedSettings.keybind] or Enum.KeyCode.RightShift) then
+        if tostring(currentKeybind.Name) ~= originalKeybind then
             NexusUI:Notify({
                 Title    = "Keybind alterada",
                 Message  = "Tecla para ocultar: " .. currentKeybind.Name,
@@ -1558,6 +1561,10 @@ function NexusUI:CreateWindow(config)
                 Duration = 3,
             })
         end
+
+        -- Atualiza os originais para a próxima comparação
+        originalTheme   = pendingTheme
+        originalKeybind = tostring(currentKeybind.Name)
 
         -- Fecha o painel
         settingsOpen = false
@@ -2914,6 +2921,6 @@ function NexusUI:CreateWindow(config)
     end -- AddTab
 
     return Win
-end -- CreateWindowdsa
+end -- CreateWindowsdsss
 
 return NexusUI
