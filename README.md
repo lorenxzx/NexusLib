@@ -6,7 +6,7 @@
     ██║ ╚████║███████╗██╔╝ ██╗╚██████╔╝███████║    ╚██████╔╝██║
     ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝     ╚═════╝ ╚═╝
 
-    NexusUI v2.0.0  —  gg
+    NexusUI v2.0.0  —  aaaaaaaaaaaa
 
     FIX DEFINITIVO DOS CANTOS:
       UIStroke + ClipsDescendants no MESMO frame sempre vaza.
@@ -256,6 +256,20 @@ end
 -- ═══════════════════════════════════════════════════
 --  SCREENGUI
 -- ═══════════════════════════════════════════════════
+
+-- Destrói instância anterior se o script for executado duas vezes
+local function destroyExisting()
+    pcall(function()
+        local existing = CoreGui:FindFirstChild("NexusUI")
+        if existing then existing:Destroy() end
+    end)
+    pcall(function()
+        local existing = LP:FindFirstChild("PlayerGui") and LP.PlayerGui:FindFirstChild("NexusUI")
+        if existing then existing:Destroy() end
+    end)
+end
+destroyExisting()
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name           = "NexusUI"
 ScreenGui.ResetOnSpawn   = false
@@ -528,6 +542,34 @@ function NexusUI:CreateWindow(config)
                 div.Position=UDim2.new(0,0,1,-1); div.BorderSizePixel=0; div.ZIndex=12
                 div.Parent=keyTitleBar
             end
+
+            -- Arrastar a janela de key pela titlebar
+            MakeDraggable(keyOuter, keyTitleBar)
+
+            -- Botão fechar (X)
+            local closeBtn = Instance.new("TextButton")
+            closeBtn.BackgroundTransparency = 1
+            closeBtn.Size       = UDim2.new(0, 36, 1, 0)
+            closeBtn.Position   = UDim2.new(1, -36, 0, 0)
+            closeBtn.Text       = "X"
+            closeBtn.TextColor3 = T.TextMuted
+            closeBtn.TextSize   = 12
+            closeBtn.Font       = Enum.Font.GothamBold
+            closeBtn.ZIndex     = 13
+            closeBtn.Parent     = keyTitleBar
+            closeBtn.MouseEnter:Connect(function()
+                Tween(closeBtn, {TextColor3 = T.Error}, 0.1)
+            end)
+            closeBtn.MouseLeave:Connect(function()
+                Tween(closeBtn, {TextColor3 = T.TextMuted}, 0.1)
+            end)
+            closeBtn.MouseButton1Click:Connect(function()
+                Tween(keyOuter, {Size=UDim2.new(0,400,0,0)}, 0.2)
+                task.wait(0.22)
+                keyOuter:Destroy()
+                -- Destrói a ScreenGui inteira para não deixar nada rodando
+                ScreenGui:Destroy()
+            end)
 
             -- Pill accent
             do
