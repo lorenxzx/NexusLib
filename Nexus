@@ -1,4 +1,4 @@
--- 1111
+
 local NexusUI  = {}
 NexusUI.__index = NexusUI
 NexusUI.Version = "v2.0.0"  -- Atualize aqui para mudar em toda a lib
