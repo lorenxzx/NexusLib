@@ -2254,26 +2254,48 @@ function NexusUI:CreateWindow(config)
                 cb(v)
             end
 
-            local dragging = false
-            handle.InputBegan:Connect(function(i)
-                if i.UserInputType==Enum.UserInputType.MouseButton1 then
-                    dragging=true; Tween(handle,{Size=UDim2.new(0,16,0,16)},0.1)
+            local dragging  = false
+            local touchId   = nil  -- rastreia qual dedo está arrastando
+
+            local function getInputX(i)
+                if i.UserInputType == Enum.UserInputType.Touch then
+                    return i.Position.X
                 end
-            end)
-            trackBg.InputBegan:Connect(function(i)
-                if i.UserInputType==Enum.UserInputType.MouseButton1 then
-                    dragging=true; Tween(handle,{Size=UDim2.new(0,16,0,16)},0.1)
+                return Mouse.X
+            end
+
+            local function startDrag(i)
+                if i.UserInputType == Enum.UserInputType.MouseButton1
+                or i.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    touchId  = i
+                    Tween(handle, {Size=UDim2.new(0,16,0,16)}, 0.1)
+                    -- Aplica imediatamente no ponto do toque/clique
+                    local tp = trackBg.AbsolutePosition.X
+                    local ts = trackBg.AbsoluteSize.X
+                    setVal(minVal + math.clamp((getInputX(i)-tp)/ts,0,1)*(maxVal-minVal))
                 end
-            end)
+            end
+
+            handle.InputBegan:Connect(startDrag)
+            trackBg.InputBegan:Connect(startDrag)
+
             UserInputService.InputEnded:Connect(function(i)
-                if i.UserInputType==Enum.UserInputType.MouseButton1 then
-                    dragging=false; Tween(handle,{Size=UDim2.new(0,13,0,13)},0.1)
+                if i.UserInputType == Enum.UserInputType.MouseButton1
+                or i.UserInputType == Enum.UserInputType.Touch then
+                    dragging = false
+                    touchId  = nil
+                    Tween(handle, {Size=UDim2.new(0,13,0,13)}, 0.1)
                 end
             end)
-            RunService.RenderStepped:Connect(function()
-                if dragging then
-                    local tp=trackBg.AbsolutePosition.X; local ts=trackBg.AbsoluteSize.X
-                    setVal(minVal + math.clamp((Mouse.X-tp)/ts,0,1)*(maxVal-minVal))
+
+            UserInputService.InputChanged:Connect(function(i)
+                if not dragging then return end
+                if i.UserInputType == Enum.UserInputType.MouseMovement
+                or i.UserInputType == Enum.UserInputType.Touch then
+                    local tp = trackBg.AbsolutePosition.X
+                    local ts = trackBg.AbsoluteSize.X
+                    setVal(minVal + math.clamp((getInputX(i)-tp)/ts,0,1)*(maxVal-minVal))
                 end
             end)
 
@@ -3068,19 +3090,40 @@ function NexusUI:CreateWindow(config)
                 sliderRefs[idx] = sliderValues[idx]
 
                 local dragging2 = false
-                handle2.InputBegan:Connect(function(i)
-                    if i.UserInputType==Enum.UserInputType.MouseButton1 then dragging2=true end
-                end)
-                trackBg2.InputBegan:Connect(function(i)
-                    if i.UserInputType==Enum.UserInputType.MouseButton1 then dragging2=true end
-                end)
+
+                local function startDrag2(i)
+                    if i.UserInputType == Enum.UserInputType.MouseButton1
+                    or i.UserInputType == Enum.UserInputType.Touch then
+                        dragging2 = true
+                        local tp = trackBg2.AbsolutePosition.X
+                        local ts = trackBg2.AbsoluteSize.X
+                        local px = i.Position.X
+                        local v = math.round(math.clamp((px-tp)/ts,0,1)*255)
+                        sliderRefs[idx]  = v
+                        fill2.Size       = UDim2.new(v/255,0,1,0)
+                        handle2.Position = UDim2.new(v/255,0,0.5,0)
+                        valLbl2.Text     = tostring(v)
+                        updateColor()
+                    end
+                end
+
+                handle2.InputBegan:Connect(startDrag2)
+                trackBg2.InputBegan:Connect(startDrag2)
+
                 UserInputService.InputEnded:Connect(function(i)
-                    if i.UserInputType==Enum.UserInputType.MouseButton1 then dragging2=false end
+                    if i.UserInputType == Enum.UserInputType.MouseButton1
+                    or i.UserInputType == Enum.UserInputType.Touch then
+                        dragging2 = false
+                    end
                 end)
-                RunService.RenderStepped:Connect(function()
-                    if dragging2 then
-                        local tp=trackBg2.AbsolutePosition.X; local ts=trackBg2.AbsoluteSize.X
-                        local v = math.round(math.clamp((Mouse.X-tp)/ts,0,1)*255)
+
+                UserInputService.InputChanged:Connect(function(i)
+                    if not dragging2 then return end
+                    if i.UserInputType == Enum.UserInputType.MouseMovement
+                    or i.UserInputType == Enum.UserInputType.Touch then
+                        local tp = trackBg2.AbsolutePosition.X
+                        local ts = trackBg2.AbsoluteSize.X
+                        local v = math.round(math.clamp((i.Position.X-tp)/ts,0,1)*255)
                         sliderRefs[idx]  = v
                         fill2.Size       = UDim2.new(v/255,0,1,0)
                         handle2.Position = UDim2.new(v/255,0,0.5,0)
@@ -3108,6 +3151,6 @@ function NexusUI:CreateWindow(config)
     end -- AddTab
 
     return Win
-end -- CreateWindow
+end -- CreateWindoww
 
 return NexusUI
