@@ -1568,6 +1568,8 @@ function NexusUI:CreateWindow(config)
         if kbStroke then Tween(kbStroke,{Color=T.Accent},0.15) end
     end)
 
+    local uiHidden = false
+
     UserInputService.InputBegan:Connect(function(inp, gp)
         if gp then return end
         if listeningKey and inp.UserInputType==Enum.UserInputType.Keyboard then
@@ -1578,12 +1580,18 @@ function NexusUI:CreateWindow(config)
             if kbStroke then Tween(kbStroke,{Color=T.CardBorder},0.15) end
         elseif not listeningKey and inp.UserInputType==Enum.UserInputType.Keyboard then
             if inp.KeyCode==currentKeybind then
-                -- Se está minimizado: mostra/oculta o pill
-                -- Se está normal: mostra/oculta a janela
-                if minimized then
-                    pillOuter.Visible = not pillOuter.Visible
+                uiHidden = not uiHidden
+                if uiHidden then
+                    -- Oculta tudo que estiver visível
+                    winOuter.Visible  = false
+                    pillOuter.Visible = false
                 else
-                    winOuter.Visible = not winOuter.Visible
+                    -- Restaura o que estava visível antes
+                    if minimized then
+                        pillOuter.Visible = true
+                    else
+                        winOuter.Visible = true
+                    end
                 end
             end
         end
@@ -3168,6 +3176,6 @@ function NexusUI:CreateWindow(config)
     end -- AddTab
 
     return Win
-end -- CreateWindow222
+end -- CreateWindow
 
 return NexusUI
